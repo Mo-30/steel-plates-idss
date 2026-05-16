@@ -1,0 +1,20 @@
+{
+  "high_tier_pct": 65.8,
+  "high_tier_accuracy": 0.8828,
+  "macro_auc": 0.9545,
+  "top_shap_feature": "Length_of_Conveyer",
+  "top_shap_value": 0.019,
+  "lowest_auc_class": "Other_Faults",
+  "lowest_auc_value": 0.89,
+  "medium_tier_pct": 26.7,
+  "per_class_auc": {
+    "Other_Faults": 0.89,
+    "Bumps": 0.9101,
+    "Pastry": 0.9436,
+    "Stains": 0.9611,
+    "K_Scatch": 0.9898,
+    "Dirtiness": 0.9909,
+    "Z_Scratch": 0.996
+  },
+  "final_model_name": "Stacking Ensemble"
+}

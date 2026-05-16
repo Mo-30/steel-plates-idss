@@ -1,0 +1,14 @@
+{
+  "final_model_name": "Stacking Ensemble",
+  "macro_auc": 0.9545,
+  "accuracy": 0.7635,
+  "per_class_auc": {
+    "Other_Faults": 0.89,
+    "Bumps": 0.9101,
+    "Pastry": 0.9436,
+    "Stains": 0.9611,
+    "K_Scatch": 0.9898,
+    "Dirtiness": 0.9909,
+    "Z_Scratch": 0.996
+  }
+}

@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp / scratch scripts
+build_phase3_notebook.py
+build_phase4_notebook.py
+fix_phase3_cells.py
+check_predictions.py
+verify_all.py
+
+# Data — raw CSVs are reproducible from raw_zip; processed from notebooks
+data/raw/
+data/processed/
+
+# Large model binary (tracked via Git LFS)
+# models/best_model.pkl  ← handled by .gitattributes
+
+# Streamlit cache
+.streamlit/
