@@ -11,7 +11,7 @@ A production-ready machine-learning system that classifies **seven types of surf
 | Metric | Value |
 |---|---|
 | **Macro OVR AUC** (primary) | **0.9545** |
-| Overall Accuracy | 79.4% |
+| Overall Accuracy | 79.5% |
 | High-confidence automation coverage | 65.8% of plates |
 | High-confidence accuracy | 88.3% |
 | Model | Stacking Ensemble (RF + SVM + LR meta) |
