@@ -716,9 +716,9 @@
             </div>
           </div>
           <div class="img-frame">
-            <img src="../figures/phase3_per_class_auc.png" alt="Per-class AUC">
+            <img src="../figures/phase3_roc_per_class.png" alt="ROC Curves per Class">
           </div>
-          <p style="font-size:11px;color:var(--muted);text-align:center;">All 7 classes exceed the 0.85 target AUC</p>
+          <p style="font-size:11px;color:var(--muted);text-align:center;">ROC curves per class — all 7 AUCs exceed the 0.85 target (macro avg 0.9545)</p>
         </div>
         <div style="display:flex;flex-direction:column;gap:14px;">
           <div class="img-frame">
@@ -963,74 +963,74 @@
   <!-- ══════════════════════════════════════════════════════
        SLIDE 12 — LIMITATIONS, ETHICS & FUTURE WORK
   ═══════════════════════════════════════════════════════════ -->
-  <div class="slide slide-ethics" id="s12">
+  <div class="slide slide-ethics" id="s12" style="padding:30px 64px 30px;justify-content:flex-start;">
     <div class="full-w" style="max-width:1100px;">
-      <div class="phase-tag">⚖️ Phase 4 — Ethical Considerations</div>
-      <h2 style="margin-bottom:18px;">Limitations, Ethics &amp; Future Work</h2>
-      <div class="grid-2" style="align-items:start;gap:20px;">
+      <div class="phase-tag" style="margin-bottom:6px;">⚖️ Phase 4 — Ethical Considerations</div>
+      <h2 style="margin-bottom:12px;font-size:clamp(18px,2vw,28px);">Limitations, Ethics &amp; Future Work</h2>
+      <div class="grid-2" style="align-items:start;gap:16px;">
 
         <!-- LEFT: Limitations & Ethics -->
-        <div style="display:flex;flex-direction:column;gap:12px;">
-          <div class="card card-orange">
-            <h3 style="margin-bottom:8px;color:var(--orange);">⚠️ Model Limitations</h3>
-            <ul style="list-style:none;display:flex;flex-direction:column;gap:6px;">
-              <li><p><strong>Other_Faults AUC = 0.890 (lowest class)</strong> — definitionally heterogeneous "catch-all" category. Sub-type annotations needed to improve this class.</p></li>
-              <li><p><strong>SHAP is approximate for the stacking layer</strong> — TreeExplainer is applied to the RF base estimator only; the meta-learner's combination weights are not reflected in attributions.</p></li>
-              <li><p><strong>Small test support for rare classes</strong> — Stains (14 test samples) and Dirtiness (11 test samples). AUC estimates have high variance despite strong scores.</p></li>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="card card-orange" style="padding:11px 14px;">
+            <h3 style="margin-bottom:5px;color:var(--orange);font-size:13px;">⚠️ Model Limitations</h3>
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:4px;">
+              <li><p style="font-size:0.78rem;"><strong>Other_Faults AUC = 0.890 (lowest class)</strong> — heterogeneous "catch-all" category. Sub-type annotations needed.</p></li>
+              <li><p style="font-size:0.78rem;"><strong>SHAP is approximate for the stacking layer</strong> — TreeExplainer on RF base only; meta-learner weights not reflected.</p></li>
+              <li><p style="font-size:0.78rem;"><strong>Small test support for rare classes</strong> — Stains (14 samples) and Dirtiness (11 samples). High-variance AUC estimates.</p></li>
             </ul>
           </div>
-          <div class="card card-red">
-            <h3 style="margin-bottom:8px;color:var(--red);">🔒 Ethical &amp; Operational Risks</h3>
-            <ul style="list-style:none;display:flex;flex-direction:column;gap:6px;">
-              <li><p><strong>No data drift detection</strong> — if manufacturing conditions change (new steel grades, camera firmware updates), model performance may degrade silently without a monitoring dashboard.</p></li>
-              <li><p><strong>Single-facility dataset</strong> — UCI data originates from one plant. Performance may not generalise to facilities with different conveyor systems or imaging setups.</p></li>
-              <li><p><strong>Automation must not replace human judgment for safety-critical batches</strong> — the High-tier (88.3% accuracy) is suitable for decision <em>support</em>, not unreviewed auto-rejection on structural steel components.</p></li>
+          <div class="card card-red" style="padding:11px 14px;">
+            <h3 style="margin-bottom:5px;color:var(--red);font-size:13px;">🔒 Ethical &amp; Operational Risks</h3>
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:4px;">
+              <li><p style="font-size:0.78rem;"><strong>No data drift detection</strong> — new steel grades or camera firmware changes can silently degrade predictions.</p></li>
+              <li><p style="font-size:0.78rem;"><strong>Single-facility dataset</strong> — UCI from one plant only. May not generalise to different conveyor/imaging setups.</p></li>
+              <li><p style="font-size:0.78rem;"><strong>Must not replace human judgment for safety-critical batches</strong> — High-tier (88.3%) is decision <em>support</em>, not auto-rejection on structural components.</p></li>
             </ul>
           </div>
-          <div class="card" style="border-left:3px solid #60a5fa;">
-            <h3 style="margin-bottom:8px;color:#60a5fa;">🛡️ Proposed Mitigations</h3>
-            <ul style="list-style:none;display:flex;flex-direction:column;gap:5px;">
-              <li><p>Collect annotated sub-types for Other_Faults (mild irregularity / multi-defect / unclassified).</p></li>
-              <li><p>Deploy a Population Stability Index (PSI) monitor on top SHAP features — alert when PSI &gt; 0.2.</p></li>
-              <li><p>Require human sign-off for any batch where &gt; 20% of plates fall in the Low risk tier (possible sensor fault).</p></li>
+          <div class="card" style="border-left:3px solid #60a5fa;padding:11px 14px;">
+            <h3 style="margin-bottom:5px;color:#60a5fa;font-size:13px;">🛡️ Proposed Mitigations</h3>
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:4px;">
+              <li><p style="font-size:0.78rem;">Collect annotated sub-types for Other_Faults (mild irregularity / multi-defect / unclassified).</p></li>
+              <li><p style="font-size:0.78rem;">Deploy PSI monitor on top SHAP features — alert when PSI &gt; 0.2.</p></li>
+              <li><p style="font-size:0.78rem;">Require human sign-off when &gt; 20% of a batch falls in the Low risk tier.</p></li>
             </ul>
           </div>
         </div>
 
         <!-- RIGHT: Future Work -->
-        <div style="display:flex;flex-direction:column;gap:12px;">
-          <div class="card card-accent">
-            <h3 style="margin-bottom:12px;color:var(--accent);">🚀 Future Work</h3>
-            <div style="display:flex;flex-direction:column;gap:10px;">
-              <div style="display:flex;gap:12px;align-items:flex-start;">
-                <span style="font-size:18px;flex-shrink:0;">🔬</span>
-                <p><strong>Other_Faults sub-type analysis</strong> stratified by Steel_Plate_Thickness quartile — break the catch-all class into annotatable sub-categories.</p>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="card card-accent" style="padding:11px 14px;">
+            <h3 style="margin-bottom:8px;color:var(--accent);font-size:13px;">🚀 Future Work</h3>
+            <div style="display:flex;flex-direction:column;gap:7px;">
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span style="font-size:16px;flex-shrink:0;">🔬</span>
+                <p style="font-size:0.78rem;"><strong>Other_Faults sub-type analysis</strong> stratified by Steel_Plate_Thickness quartile.</p>
               </div>
-              <div style="display:flex;gap:12px;align-items:flex-start;">
-                <span style="font-size:18px;flex-shrink:0;">💡</span>
-                <p><strong>Real-time data drift monitoring dashboard</strong> (PSI on Length_of_Conveyer, TypeOfSteel_A400, Orientation_Index) — detect silent model degradation.</p>
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span style="font-size:16px;flex-shrink:0;">💡</span>
+                <p style="font-size:0.78rem;"><strong>Real-time data drift monitoring dashboard</strong> (PSI on Length_of_Conveyer, TypeOfSteel_A400, Orientation_Index).</p>
               </div>
-              <div style="display:flex;gap:12px;align-items:flex-start;">
-                <span style="font-size:18px;flex-shrink:0;">🔄</span>
-                <p><strong>Active learning pipeline</strong> — Medium-tier operator verdicts feed monthly retraining cycle, progressively improving confidence boundaries.</p>
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span style="font-size:16px;flex-shrink:0;">🔄</span>
+                <p style="font-size:0.78rem;"><strong>Active learning pipeline</strong> — Medium-tier operator verdicts feed monthly retraining cycle.</p>
               </div>
-              <div style="display:flex;gap:12px;align-items:flex-start;">
-                <span style="font-size:18px;flex-shrink:0;">🌐</span>
-                <p><strong>REST API wrapper (FastAPI)</strong> for ERP/MES integration — real-time scoring without Streamlit overhead.</p>
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span style="font-size:16px;flex-shrink:0;">🌐</span>
+                <p style="font-size:0.78rem;"><strong>REST API wrapper (FastAPI)</strong> for ERP/MES real-time integration without Streamlit overhead.</p>
               </div>
-              <div style="display:flex;gap:12px;align-items:flex-start;">
-                <span style="font-size:18px;flex-shrink:0;">📱</span>
-                <p><strong>Mobile-optimised shop-floor interface</strong> for on-site operator use — simplified risk badge + action display.</p>
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span style="font-size:16px;flex-shrink:0;">📱</span>
+                <p style="font-size:0.78rem;"><strong>Mobile-optimised shop-floor interface</strong> — simplified risk badge + action display for operators.</p>
               </div>
             </div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-            <div class="metric-big card">
-              <div class="val" style="font-size:clamp(18px,2vw,28px);">0.890</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div class="metric-big card" style="padding:12px 8px;">
+              <div class="val" style="font-size:clamp(18px,2vw,26px);">0.890</div>
               <div class="lbl">Other_Faults AUC<br><span style="color:var(--orange);">Needs sub-typing</span></div>
             </div>
-            <div class="metric-big card">
-              <div class="val" style="font-size:clamp(18px,2vw,28px);">88.3%</div>
+            <div class="metric-big card" style="padding:12px 8px;">
+              <div class="val" style="font-size:clamp(18px,2vw,26px);">88.3%</div>
               <div class="lbl">High-tier Accuracy<br><span style="color:var(--green);">Support, not replace</span></div>
             </div>
           </div>
