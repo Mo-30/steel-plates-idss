@@ -43,3 +43,7 @@ data/processed/
 
 # Streamlit cache
 .streamlit/
+
+# Environment / secrets — never commit real keys
+prototype/.env
+.env

@@ -2,7 +2,7 @@
 
 > **AIS431 Final Project** | Mohamed Sherif (221000142) · Mohamed Osama (221001647)
 
-A production-ready machine-learning system that classifies **seven types of surface defects** on steel plates from sensor measurements, explains every prediction with SHAP, and routes each plate to the correct factory action — automatically or via human review — based on a calibrated confidence threshold.
+A production-ready machine-learning system that classifies **seven types of surface defects** on steel plates from sensor measurements, explains every prediction with SHAP, routes each plate to the correct factory action based on a calibrated confidence threshold, and includes a **Groq-powered QC chatbot** for operator support.
 
 ---
 
@@ -18,7 +18,7 @@ A production-ready machine-learning system that classifies **seven types of surf
 
 **Per-class AUC:**
 
-| Defect | AUC | Support (test) |
+| Defect | AUC | Test Support |
 |---|---|---|
 | Z_Scratch | 0.9960 | 38 |
 | Dirtiness | 0.9909 | 11 |
@@ -30,14 +30,35 @@ A production-ready machine-learning system that classifies **seven types of surf
 
 ---
 
-## Demo
+## Quick Start
 
+### 1. Clone the repo
+```bash
+git clone https://github.com/Mo-30/steel-plates-idss.git
+cd steel-plates-idss
+```
+
+### 2. Install dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Set up the chatbot API key
+```bash
+cp prototype/.env.example prototype/.env
+# Edit prototype/.env and paste your Groq API key:
+# GROQ_API_KEY=your_key_here
+# Get a free key at: https://console.groq.com
+```
+
+### 4. Run the Streamlit prototype
 ```bash
 cd prototype
 python -m streamlit run app.py
 ```
+Open [http://localhost:8501](http://localhost:8501).
 
-![Risk tier routing](figures/phase4_risk_tiers.png)
+> **Note:** The processed data (`data/processed/`) and model files (`models/`) are included in the repo via Git LFS. No need to re-run the notebooks unless you want to reproduce training.
 
 ---
 
@@ -46,69 +67,132 @@ python -m streamlit run app.py
 ```
 steel-plates-idss/
 │
-├── src/                          # Reusable Python modules
-│   ├── config.py                 # All constants and paths
-│   ├── feature_engineering.py    # 6 domain-engineered features
-│   └── preprocessing.py          # Pipeline factory + data loader
+├── src/                              # Core Python modules (shared by notebooks + app)
+│   ├── config.py                     # All constants: paths, random seed, class names
+│   ├── feature_engineering.py        # 6 domain-engineered features + TypeOfSteel_A300 drop
+│   └── preprocessing.py              # Pipeline factory (FunctionTransformer + StandardScaler)
+│                                     # + load_raw_data() with offline fallback
 │
 ├── notebooks/
-│   ├── phase1_eda.ipynb          # Exploratory data analysis
-│   ├── phase2_data_prep.ipynb    # Feature engineering + train/test split
-│   ├── phase3_modelling.ipynb    # Model training + evaluation
-│   └── phase4_explainability.ipynb  # SHAP analysis + business recommendations
+│   ├── phase1_eda.ipynb              # Exploratory data analysis: distributions, correlations
+│   ├── phase2_data_prep.ipynb        # Feature engineering, train/test split, pipeline fitting
+│   ├── phase3_modelling.ipynb        # LR / RF / XGBoost / SVM / Stacking + evaluation
+│   └── phase4_explainability.ipynb  # SHAP analysis, risk tiers, business recommendations
 │
 ├── prototype/
-│   ├── app.py                    # Streamlit web app
-│   ├── requirements.txt          # App-specific dependencies
-│   └── sample_input.csv          # 5-row example for manual testing
+│   ├── app.py                        # Streamlit app — prediction + SHAP + QC chatbot
+│   ├── chatbot.py                    # Groq LLM chatbot (llama-3.3-70b) with prediction context
+│   ├── .env                          # Your API keys — NOT committed (see .env.example)
+│   ├── .env.example                  # Template: copy to .env and fill in your key
+│   ├── requirements.txt              # App-specific dependencies
+│   ├── sample_input.csv              # 5-row example for manual testing
+│   └── test_sample_100.csv           # 100 test-set rows for batch prediction demo
 │
-├── models/
-│   ├── best_model.pkl            # Stacking Ensemble (Git LFS)
-│   ├── preprocessing_pipeline.pkl
-│   ├── label_classes.pkl
-│   ├── label_encoder.pkl
-│   ├── feature_names.pkl
-│   ├── metrics_summary.json
-│   └── recommendation_evidence.json
+├── models/                           # Trained artefacts (Git LFS for .pkl files)
+│   ├── best_model.pkl                # Stacking Ensemble — main inference model
+│   ├── preprocessing_pipeline.pkl    # Fitted FunctionTransformer + StandardScaler
+│   ├── label_classes.pkl             # Ordered class names array
+│   ├── label_encoder.pkl             # LabelEncoder for XGBoost integer targets
+│   ├── feature_names.pkl             # List of 32 feature names post-engineering
+│   ├── metrics_summary.json          # Final AUC, accuracy, per-class AUC
+│   └── recommendation_evidence.json  # Numeric evidence cited in business recommendations
 │
 ├── reports/
-│   ├── business_insights_report.pdf   # 5-page business report
-│   ├── executive_summary.pdf          # 1-page non-technical summary
-│   ├── generate_business_report.py    # reportlab generator
-│   └── generate_executive_summary.py  # reportlab generator
+│   ├── business_insights_report.pdf  # 5-page business report (reportlab)
+│   ├── executive_summary.pdf         # 1-page non-technical summary (reportlab)
+│   ├── generate_business_report.py   # Script to regenerate business_insights_report.pdf
+│   └── generate_executive_summary.py # Script to regenerate executive_summary.pdf
 │
 ├── presentation/
-│   ├── final_presentation.pptx        # 13-slide deck
-│   └── generate_presentation.py       # python-pptx generator
+│   ├── final_presentation.pptx       # 13-slide deck (python-pptx)
+│   └── generate_presentation.py      # Script to regenerate the .pptx
 │
-├── figures/                      # All plots (PNG) used in reports + slides
+├── figures/                          # All PNG plots saved during notebook execution
+│   ├── phase2_class_distribution.png
+│   ├── phase2_mutual_information.png
+│   ├── phase3_model_comparison.png
+│   ├── phase3_confusion_matrix.png
+│   ├── phase3_per_class_auc.png
+│   ├── phase3_roc_per_class.png
+│   ├── phase3_roc_per_model.png
+│   ├── phase4_shap_bar.png
+│   ├── phase4_rf_importance.png
+│   ├── phase4_risk_tiers.png
+│   ├── phase4_waterfall_tp.png
+│   ├── phase4_waterfall_edge.png
+│   └── phase4_waterfall_wrong.png
+│
 ├── data/
-│   ├── raw_zip/                  # Original UCI archive files
-│   └── data_dictionary.md        # Feature descriptions
+│   ├── raw_zip/                      # Original UCI archive files (offline fallback)
+│   │   ├── Faults.NNA                # Raw tab-separated data (1941 × 34)
+│   │   └── Faults27x7_var            # Column names file
+│   └── data_dictionary.md            # Feature descriptions for all 33 columns
 │
-├── requirements.txt              # Full project dependencies
-└── verify_phase2.py / verify_phase3.py  # Smoke-test scripts
+├── docs/                             # Project specification documents
+│   ├── IDSS_Project.md
+│   ├── CLAUDE.md
+│   ├── Phase2_DataPrep.md
+│   ├── Phase3_Modelling.md
+│   ├── Phase4_Explainability.md
+│   └── Phase5_Prototype.md
+│
+├── requirements.txt                  # Full project dependencies
+├── verify_phase2.py                  # Smoke test: checks Phase 2 outputs
+├── verify_phase3.py                  # Smoke test: checks Phase 3 model + metrics
+├── .gitignore
+└── .gitattributes                    # Git LFS tracking for .pkl / .pdf / .pptx
 ```
 
 ---
 
-## Dataset
+## Prototype Features
 
-**Steel Plates Faults** — UCI Machine Learning Repository ([ID 198](https://archive.ics.uci.edu/dataset/198/steel+plates+faults))
+The Streamlit app (`prototype/app.py`) has two tabs:
 
-| Property | Value |
-|---|---|
-| Samples | 1,941 |
-| Original features | 27 sensor measurements |
-| Engineered features | 6 (see below) |
-| Target | 7 mutually exclusive defect classes |
-| Class imbalance | 12:1 (Other_Faults 673 vs Dirtiness 55) |
-| Train / test split | 80 / 20, stratified |
+### 🔍 Prediction Tab
+- **Manual Entry** — 27 sensor fields with training-set median defaults; one-click predict
+- **CSV Upload** — batch predictions on any CSV with the 27 original feature columns
+- For each prediction:
+  - 7-class probability bar chart
+  - Risk tier badge (High / Medium / Low) with colour coding
+  - Recommended factory action
+  - SHAP waterfall plot explaining the top 10 feature contributions
+  - Top-5 feature contribution table
 
-### Defect Classes
-`Pastry` · `Z_Scratch` · `K_Scatch` · `Stains` · `Dirtiness` · `Bumps` · `Other_Faults`
+### 🤖 QC Assistant Tab
+- Groq-powered chatbot (Llama 3.3 70B) with full awareness of the current prediction context
+- Context-aware suggested questions change based on the predicted defect class
+- Answers factory-floor questions about defect types, QC procedures, model accuracy, and SHAP explanations
+- Requires a free Groq API key (see setup above)
 
-### Engineered Features
+---
+
+## Model Inference Pipeline
+
+```
+Raw input (27 sensor columns)
+        │
+        ▼
+preprocessing_pipeline.pkl
+  ├── FunctionTransformer  →  add 6 engineered features, drop TypeOfSteel_A300
+  └── StandardScaler       →  zero mean, unit variance
+        │
+        ▼  32 scaled features
+Stacking Ensemble (best_model.pkl)
+  ├── Random Forest  (300 trees, class_weight='balanced')
+  ├── SVM RBF        (C=10, class_weight='balanced', probability=True)
+  └── LR meta-learner on stacked probabilities
+        │
+        ▼  7 class probabilities
+Risk tier assignment  →  factory action recommendation
+        │
+        ▼
+SHAP TreeExplainer (on RF base estimator)  →  feature attribution
+```
+
+---
+
+## Engineered Features
 
 | Feature | Formula | Manufacturing Meaning |
 |---|---|---|
@@ -121,163 +205,45 @@ steel-plates-idss/
 
 ---
 
-## Methodology
+## Risk Tier Routing
 
-### Phase 2 — Data Preparation
-- Loaded UCI dataset via local archive (`data/raw_zip/`)
-- Verified 0 nulls, 0 duplicates, every row sums to exactly 1 across targets (confirmed multi-class, not multi-label)
-- Applied 6 domain-engineered features
-- Stratified 80/20 split → `StandardScaler` fitted on train only
-- Saved fitted pipeline as `models/preprocessing_pipeline.pkl`
-
-### Phase 3 — Modelling
-
-Four base models trained with `class_weight='balanced'` (XGBoost uses `compute_sample_weight`):
-
-| Model | CV AUC (5-fold) | Test AUC |
-|---|---|---|
-| Logistic Regression | baseline | — |
-| Random Forest | — | — |
-| XGBoost | — | — |
-| SVM (RBF) | — | — |
-| **Stacking Ensemble** | — | **0.9545** |
-
-- **RandomizedSearchCV** (50 iterations, 5-fold stratified) tuned XGBoost
-- **StackingClassifier**: RF + SVM base, Logistic Regression meta-learner, `stack_method='predict_proba'`
-- Balanced vs unbalanced experiment documented — balanced model chosen for better minority-class recall
-
-### Phase 4 — Explainability
-
-- **SHAP TreeExplainer** on RF base estimator
-- Global bar plot (mean |SHAP| across all classes)
-- Beeswarm plots for K_Scatch, Stains, Dirtiness
-- Three individual waterfall plots: high-confidence TP, edge case, misclassification
-- **Risk tier segmentation**: High ≥0.70 · Medium 0.40–0.70 · Low <0.40
-
-#### Risk Tier Performance (test set)
-| Tier | Coverage | Accuracy | Factory Action |
-|---|---|---|---|
-| **High** | 65.8% | 88.3% | Auto pass/reject |
-| **Medium** | 26.7% | ~57% | Human review (60s) |
-| **Low** | 7.5% | ~50% | Escalate to senior QC |
-
-### Phase 5 — Prototype & Deliverables
-
-- **Streamlit app**: manual entry (27 fields, median defaults) or CSV upload → 7-class probability bar chart + risk badge + SHAP waterfall
-- **13-slide PPTX**: generated with python-pptx
-- **5-page business report PDF** + **1-page executive summary PDF**: generated with reportlab
+| Tier | Threshold | Coverage | Accuracy | Factory Action |
+|---|---|---|---|---|
+| **High** | prob ≥ 0.70 | 65.8% | 88.3% | Auto pass/reject — no human needed |
+| **Medium** | 0.40–0.70 | 26.7% | ~57% | Human review within 60 seconds |
+| **Low** | prob < 0.40 | 7.5% | ~50% | Hold — escalate to senior QC |
 
 ---
 
-## Key SHAP Findings
+## Reproduce from Scratch
 
-![SHAP global importance](figures/phase4_shap_bar.png)
-
-Top features driving predictions:
-1. **Length_of_Conveyer** — process-level stage indicator
-2. **Defect_Area_Ratio** — spread vs localised defect (engineered)
-3. **Log_Pixels_Areas** — scale-invariant size (engineered)
-4. **Luminosity_Range** — scratch sharpness (engineered)
-5. **Steel_Plate_Thickness** — plate grade + rolling process
-
----
-
-## Business Recommendations
-
-| # | Recommendation | Priority | Timeline |
-|---|---|---|---|
-| 1 | Deploy auto pass/reject on High-tier (≥0.70 confidence) | **High** | Immediate |
-| 2 | Monthly calibration of Length_of_Conveyer sensors | **High** | Immediate |
-| 3 | Safety-net routing for Other_Faults predictions | **High** | Immediate |
-| 4 | Monthly retraining with active learning on Medium-tier | **Medium** | 1–3 months |
-| 5 | Camera-cleaning alert on consecutive Stains/Dirtiness predictions | **Medium** | 1–3 months |
-| 6 | Audit Other_Faults by thickness for sub-type relabelling | Low | 3–6 months |
-
-Full evidence-backed recommendations with quantified impact estimates are in [`reports/business_insights_report.pdf`](reports/business_insights_report.pdf).
-
----
-
-## Quick Start
-
-### 1. Install dependencies
 ```bash
-pip install -r requirements.txt
-```
-
-### 2. Reproduce processed data + models
-```bash
-# Phase 2 — data prep (generates data/processed/ and models/preprocessing_pipeline.pkl)
+# Phase 2 — data prep
 jupyter nbconvert --to notebook --execute --inplace notebooks/phase2_data_prep.ipynb
 
-# Phase 3 — modelling (generates models/best_model.pkl, all phase3 figures)
+# Phase 3 — modelling
 jupyter nbconvert --to notebook --execute --inplace notebooks/phase3_modelling.ipynb
 
-# Phase 4 — explainability (generates all phase4 figures + recommendation_evidence.json)
+# Phase 4 — explainability
 jupyter nbconvert --to notebook --execute --inplace notebooks/phase4_explainability.ipynb
-```
 
-### 3. Regenerate reports
-```bash
+# Regenerate PDF reports
 python reports/generate_business_report.py
 python reports/generate_executive_summary.py
+
+# Regenerate PPTX
 python presentation/generate_presentation.py
 ```
 
-### 4. Run the Streamlit prototype
-```bash
-cd prototype
-python -m streamlit run app.py
-```
-Open [http://localhost:8501](http://localhost:8501).
-
-**Batch prediction:** upload `prototype/sample_input.csv` (or any CSV with the 27 original feature columns) in the CSV Upload tab.
-
 ---
 
-## Model Inference Pipeline
+## Contributing
 
-```
-Raw input (27 sensor columns)
-        │
-        ▼
-preprocessing_pipeline.pkl
-  ├── FunctionTransformer → add 6 features, drop TypeOfSteel_A300
-  └── StandardScaler      → zero mean, unit variance
-        │
-        ▼  32 scaled features
-Stacking Ensemble (best_model.pkl)
-  ├── Random Forest  (300 trees, class_weight='balanced')
-  ├── SVM RBF        (C=10, class_weight='balanced', probability=True)
-  └── LR meta-learner on stacked probas
-        │
-        ▼  7 class probabilities
-Risk tier assignment + action recommendation
-```
-
-SHAP explanations are computed on the RF base estimator (TreeExplainer-compatible).
-
----
-
-## Figures
-
-| Figure | Description |
-|---|---|
-| ![](figures/phase3_model_comparison.png) | Model comparison — Macro OVR AUC |
-| ![](figures/phase3_per_class_auc.png) | Per-class AUC (all 7 classes > 0.89) |
-| ![](figures/phase3_confusion_matrix.png) | Confusion matrix — Stacking Ensemble |
-| ![](figures/phase4_shap_bar.png) | SHAP global feature importance |
-| ![](figures/phase4_risk_tiers.png) | Risk tier × class distribution |
-| ![](figures/phase4_waterfall_tp.png) | SHAP waterfall — high-confidence TP |
-| ![](figures/phase4_waterfall_wrong.png) | SHAP waterfall — misclassification |
-
----
-
-## Reproducibility
-
-- `random_state=42` on every randomised operation
-- All paths resolved via `src/config.py` (no hardcoded strings)
-- Data fetched from bundled `data/raw_zip/` (UCI archive) — no internet required
-- Notebooks run top-to-bottom from a clean kernel without in-memory state from other notebooks
+1. Fork the repo and create a feature branch: `git checkout -b feature/your-feature`
+2. All shared logic goes in `src/` — import from there in notebooks and `prototype/app.py`
+3. New figures should be saved to `figures/` as PNG
+4. Test notebooks run clean: restart kernel → Run All, no errors
+5. Open a pull request with a description of what you changed and why
 
 ---
 
@@ -287,10 +253,12 @@ SHAP explanations are computed on the RF base estimator (TreeExplainer-compatibl
 |---|---|
 | scikit-learn 1.8 | LR, RF, SVM, StackingClassifier, preprocessing |
 | XGBoost 2.1 | Gradient boosting base model |
-| SHAP 0.51 | Feature attribution |
+| SHAP 0.51 | Feature attribution (TreeExplainer) |
 | pandas / numpy | Data manipulation |
 | matplotlib / seaborn | Visualisation |
 | Streamlit 1.30 | Interactive prototype |
+| openai + Groq | QC chatbot (Llama 3.3 70B via Groq API) |
+| python-dotenv | API key management |
 | reportlab | PDF report generation |
 | python-pptx | Presentation generation |
 
