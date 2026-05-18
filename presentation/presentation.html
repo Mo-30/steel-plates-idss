@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Steel Plates Defect IDSS — AIS431</title>
+<style>
+  :root {
+    --bg: #07091a;
+    --surface: rgba(255,255,255,0.045);
+    --surface2: rgba(255,255,255,0.07);
+    --border: rgba(255,255,255,0.09);
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #818cf8;
+    --accent2: #22d3ee;
+    --gold: #fbbf24;
+    --green: #34d399;
+    --red: #f87171;
+    --orange: #fb923c;
+    --purple: #c084fc;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* ── Progress bar ── */
+  #progress-bar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width .4s ease;
+    z-index: 100;
+  }
+
+  /* ── Slide counter ── */
+  #counter {
+    position: fixed;
+    bottom: 22px; right: 28px;
+    font-size: 13px;
+    color: var(--muted);
+    z-index: 100;
+    letter-spacing: .05em;
+  }
+
+  /* ── Nav buttons ── */
+  .nav-btn {
+    position: fixed;
+    bottom: 18px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 20px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 14px;
+    z-index: 100;
+    transition: background .2s;
+  }
+  .nav-btn:hover { background: rgba(255,255,255,0.12); }
+  #btn-prev { left: 28px; }
+  #btn-next { left: 110px; }
+
+  /* ── Slides container ── */
+  #slides { width: 100vw; height: 100vh; }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 52px 72px 64px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .45s ease, transform .45s ease;
+    transform: translateY(18px);
+  }
+  .slide.active {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateY(0);
+  }
+
+  /* ── Background gradients per slide ── */
+  .slide-title    { background: radial-gradient(ellipse at 60% 40%, #1e1456 0%, #07091a 65%); }
+  .slide-problem  { background: radial-gradient(ellipse at 30% 60%, #0c1f3e 0%, #07091a 70%); }
+  .slide-pipeline { background: radial-gradient(ellipse at 50% 50%, #0f1930 0%, #07091a 70%); }
+  .slide-phase1   { background: radial-gradient(ellipse at 70% 30%, #1a0d2e 0%, #07091a 70%); }
+  .slide-phase2   { background: radial-gradient(ellipse at 30% 70%, #0d1a2e 0%, #07091a 70%); }
+  .slide-phase3a  { background: radial-gradient(ellipse at 60% 50%, #0d2318 0%, #07091a 70%); }
+  .slide-phase3b  { background: radial-gradient(ellipse at 40% 40%, #0f1a0d 0%, #07091a 70%); }
+  .slide-phase4a  { background: radial-gradient(ellipse at 65% 35%, #1f0d2a 0%, #07091a 70%); }
+  .slide-phase4b  { background: radial-gradient(ellipse at 35% 65%, #1a1005 0%, #07091a 70%); }
+  .slide-phase5a  { background: radial-gradient(ellipse at 55% 45%, #051a2a 0%, #07091a 70%); }
+  .slide-phase5b  { background: radial-gradient(ellipse at 45% 55%, #0a0520 0%, #07091a 70%); }
+  .slide-recs     { background: radial-gradient(ellipse at 50% 50%, #1a0f05 0%, #07091a 70%); }
+  .slide-conclusion { background: radial-gradient(ellipse at 50% 40%, #071a1a 0%, #07091a 70%); }
+
+  /* ── Typography ── */
+  .slide-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  h1 { font-size: clamp(28px, 3.5vw, 52px); font-weight: 800; line-height: 1.1; }
+  h2 { font-size: clamp(22px, 2.5vw, 38px); font-weight: 700; line-height: 1.2; }
+  h3 { font-size: clamp(14px, 1.4vw, 20px); font-weight: 600; }
+  p, li { font-size: clamp(12px, 1.15vw, 17px); line-height: 1.65; color: var(--muted); }
+  strong { color: var(--text); }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 24px;
+    backdrop-filter: blur(8px);
+  }
+  .card-accent { border-left: 3px solid var(--accent); }
+  .card-cyan   { border-left: 3px solid var(--accent2); }
+  .card-gold   { border-left: 3px solid var(--gold); }
+  .card-green  { border-left: 3px solid var(--green); }
+  .card-red    { border-left: 3px solid var(--red); }
+  .card-orange { border-left: 3px solid var(--orange); }
+  .card-purple { border-left: 3px solid var(--purple); }
+
+  /* ── Badge ── */
+  .badge {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .06em;
+  }
+  .badge-accent  { background: rgba(129,140,248,.15); color: var(--accent); border: 1px solid rgba(129,140,248,.3); }
+  .badge-green   { background: rgba(52,211,153,.15);  color: var(--green);  border: 1px solid rgba(52,211,153,.3); }
+  .badge-gold    { background: rgba(251,191,36,.15);   color: var(--gold);   border: 1px solid rgba(251,191,36,.3); }
+  .badge-red     { background: rgba(248,113,113,.15);  color: var(--red);    border: 1px solid rgba(248,113,113,.3); }
+  .badge-cyan    { background: rgba(34,211,238,.15);   color: var(--accent2);border: 1px solid rgba(34,211,238,.3); }
+
+  /* ── Grid helpers ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; width: 100%; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; width: 100%; }
+  .grid-5 { display: grid; grid-template-columns: repeat(5,1fr); gap: 16px; width: 100%; }
+  .full-w { width: 100%; }
+
+  /* ── Image display ── */
+  .img-frame {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: #fff;
+  }
+  .img-frame img { width: 100%; display: block; }
+  .img-dark {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .img-dark img { width: 100%; display: block; }
+
+  /* ── Metric big ── */
+  .metric-big {
+    text-align: center;
+    padding: 18px 12px;
+  }
+  .metric-big .val {
+    font-size: clamp(24px, 3vw, 44px);
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+  }
+  .metric-big .lbl { font-size: 12px; color: var(--muted); margin-top: 6px; letter-spacing: .05em; }
+
+  /* ── Table ── */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    padding: 8px 12px;
+    background: rgba(129,140,248,.12);
+    color: var(--accent);
+    text-align: left;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 7px 12px;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+    color: var(--muted);
+  }
+  tr.highlight td { color: var(--text); background: rgba(129,140,248,.06); }
+  td.hi { color: var(--accent); font-weight: 700; }
+
+  /* ── Phase pill nav ── */
+  .phase-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 14px;
+    border-radius: 999px;
+    background: rgba(129,140,248,.12);
+    border: 1px solid rgba(129,140,248,.25);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    margin-bottom: 14px;
+  }
+
+  /* ── Feature pill ── */
+  .pill {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--accent2);
+    margin: 3px;
+    font-family: 'Cascadia Code', 'Consolas', monospace;
+  }
+
+  /* ── Divider ── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+  /* ── Recommendation card ── */
+  .rec-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .rec-num {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+  .rec-title { font-size: 14px; font-weight: 700; color: var(--text); }
+  .rec-body  { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .rec-evidence { font-size: 11px; color: var(--accent2); margin-top: 4px; font-style: italic; }
+
+  /* ── Pipeline boxes ── */
+  .pipe-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 14px;
+    text-align: center;
+    position: relative;
+  }
+  .pipe-icon { font-size: 28px; margin-bottom: 8px; }
+  .pipe-num  { font-size: 10px; font-weight: 800; letter-spacing: .14em; color: var(--muted); text-transform: uppercase; }
+  .pipe-title { font-size: 13px; font-weight: 700; color: var(--text); margin: 4px 0; }
+  .pipe-desc  { font-size: 11px; color: var(--muted); line-height: 1.4; }
+  .pipe-result { font-size: 11px; color: var(--accent); margin-top: 6px; font-weight: 600; }
+
+  /* ── Risk tier row ── */
+  .risk-row { display: flex; align-items: center; gap: 14px; padding: 10px 16px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); }
+  .risk-color { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .risk-label { font-size: 13px; font-weight: 700; color: var(--text); min-width: 70px; }
+  .risk-detail { font-size: 12px; color: var(--muted); }
+  .risk-stat { margin-left: auto; font-size: 12px; font-weight: 700; }
+
+  /* ── Title slide specific ── */
+  .title-tag { font-size: 13px; color: var(--muted); margin: 6px 0; }
+  .title-name { font-size: 15px; font-weight: 600; color: var(--text); }
+  .title-id   { font-size: 12px; color: var(--muted); }
+
+  /* ── Scrollable on overflow ── */
+  .scroll-inner { overflow-y: auto; width: 100%; max-height: 80vh; padding-right: 4px; }
+  .scroll-inner::-webkit-scrollbar { width: 4px; }
+  .scroll-inner::-webkit-scrollbar-track { background: transparent; }
+  .scroll-inner::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* ── Dashboard grid ── */
+  .dash-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    width: 100%;
+  }
+  .dash-img { border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+  .dash-img img { width: 100%; display: block; }
+  .dash-caption { font-size: 10px; color: var(--muted); text-align: center; margin-top: 4px; letter-spacing: .04em; }
+
+  /* ── Glowing number ── */
+  .glow-num {
+    font-size: clamp(36px,4vw,64px);
+    font-weight: 900;
+    background: linear-gradient(135deg,#818cf8,#22d3ee);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+    line-height: 1;
+  }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+<div id="counter"></div>
+<button class="nav-btn" id="btn-prev" onclick="changeSlide(-1)">← Prev</button>
+<button class="nav-btn" id="btn-next" onclick="changeSlide(1)">Next →</button>
+
+<div id="slides">
+
+  <!-- ══════════════════════════════════════════════════════
+       SLIDE 1 — TITLE
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="slide slide-title active" id="s1">
+    <div style="text-align:center;max-width:860px;">
+      <div style="font-size:52px;margin-bottom:16px;">🏭</div>
+      <div class="slide-label">AIS431 — Intelligent Decision Support Systems</div>
+      <h1 style="margin-bottom:12px;">
+        Steel Plates Defect<br>
+        <span style="background:linear-gradient(135deg,#818cf8,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+          IDSS
+        </span>
+      </h1>
+      <p style="font-size:17px;color:var(--muted);margin-bottom:32px;max-width:600px;margin-left:auto;margin-right:auto;">
+        An Intelligent Decision Support System for Automated Defect Classification &amp; Quality Control
+      </p>
+      <div style="display:inline-grid;grid-template-columns:auto auto;gap:0 48px;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px 40px;margin-bottom:24px;">
+        <div>
+          <div class="title-tag">Supervisor</div>
+          <div class="title-name"> Dr. Nehal Ali </div>
+        </div>
+        <div>
+          <div class="title-tag">Academic Year</div>
+          <div class="title-name">2025 – 2026</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:520px;margin:0 auto;">
+        <div class="card" style="text-align:center;">
+          <div class="title-name">Mohamed Sherif</div>
+          <div class="title-id">221000142</div>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div class="title-name">Mohamed Osama</div>
+          <div class="title-id">221001647</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SLIDE 2 — PROBLEM STATEMENT
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="slide slide-problem" id="s2">
+    <div class="full-w" style="max-width:1100px;">
+      <div class="slide-label">Context &amp; Motivation</div>
+      <h2 style="margin-bottom:24px;">Problem Statement</h2>
+      <div class="grid-2" style="align-items:start;">
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div class="card card-red">
+            <h3 style="margin-bottom:6px;color:var(--red);">⚠ The Challenge</h3>
+            <p>Steel manufacturing plants produce thousands of plates per shift. Defective plates reaching customers result in <strong>costly recalls, safety risks, and reputational damage</strong>.</p>
+          </div>
+          <div class="card card-orange">
+            <h3 style="margin-bottom:6px;color:var(--orange);">📊 Manual Inspection Limits</h3>
+            <p>Manual visual inspection is <strong>slow, subjective, and error-prone</strong>. Operators struggle with 7 distinct defect types sharing overlapping visual features.</p>
+          </div>
+          <div class="card card-accent">
+            <h3 style="margin-bottom:6px;color:var(--accent);">🎯 Research Goal</h3>
+            <p>Build an <strong>Intelligent Decision Support System</strong> that automatically classifies steel plate defects, quantifies uncertainty, explains decisions, and supports operators with actionable guidance.</p>
+          </div>
+          <div class="card card-gold">
+            <h3 style="margin-bottom:6px;color:var(--gold);">🗄 Dataset</h3>
+            <p><strong>UCI Steel Plates Faults (ID 198)</strong> — 1,941 plates, 27 sensor features, 7 mutually exclusive defect classes. Severe class imbalance: <strong>12:1 ratio</strong> (Other_Faults=673 vs Dirtiness=55).</p>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div class="card" style="padding:16px 20px;">
+            <div class="title-tag" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);">7 Defect Classes</div>
+            <div style="margin-top:10px;display:flex;flex-direction:column;gap:7px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:13px;color:var(--text);">Pastry</span><span class="badge badge-red">Reject</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:13px;color:var(--text);">Z_Scratch</span><span class="badge badge-red">Reject</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:13px;color:var(--text);">K_Scatch</span><span class="badge badge-red">Reject</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:13px;color:var(--text);">Stains</span><span class="badge badge-gold">Hold</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:13px;color:var(--text);">Dirtiness</span><span class="badge badge-gold">Hold</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:13px;color:var(--text);">Bumps</span><span class="badge badge-cyan">Conditional</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:13px;color:var(--text);">Other_Faults</span><span class="badge badge-accent">Review</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="metric-big card">
+              <div class="val">1,941</div>
+              <div class="lbl">Total Samples</div>
+            </div>
+            <div class="metric-big card">
+              <div class="val">27</div>
+              <div class="lbl">Raw Features</div>
+            </div>
+            <div class="metric-big card">
+              <div class="val">7</div>
+              <div class="lbl">Defect Classes</div>
+            </div>
+            <div class="metric-big card">
+              <div class="val">12:1</div>
+              <div class="lbl">Class Imbalance</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SLIDE 3 — PIPELINE OVERVIEW
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="slide slide-pipeline" id="s3">
+    <div class="full-w" style="max-width:1100px;">
+      <div class="slide-label">Project Architecture</div>
+      <h2 style="margin-bottom:8px;">5-Phase IDSS Pipeline</h2>
+      <p style="margin-bottom:28px;">Each phase builds on the previous — from raw data to a fully deployed decision-support prototype.</p>
+      <div class="grid-5" style="align-items:stretch;">
+        <div class="pipe-box" style="border-top:2px solid var(--accent);">
+          <div class="pipe-icon">🔍</div>
+          <div class="pipe-num">Phase 1</div>
+          <div class="pipe-title">EDA</div>
+          <div class="pipe-desc">Dataset exploration, class imbalance analysis, feature correlations</div>
+          <div class="pipe-result">12:1 imbalance confirmed</div>
+        </div>
+        <div class="pipe-box" style="border-top:2px solid var(--accent2);">
+          <div class="pipe-icon">⚙️</div>
+          <div class="pipe-num">Phase 2</div>
+          <div class="pipe-title">Data Prep</div>
+          <div class="pipe-desc">6 engineered features, StandardScaler, pipeline saved as pickle</div>
+          <div class="pipe-result">32 final features</div>
+        </div>
+        <div class="pipe-box" style="border-top:2px solid var(--green);">
+          <div class="pipe-icon">🤖</div>
+          <div class="pipe-num">Phase 3</div>
+          <div class="pipe-title">Modelling</div>
+          <div class="pipe-desc">6 models compared, class-weight balancing, stacking ensemble selected</div>
+          <div class="pipe-result">Macro AUC 0.9545</div>
+        </div>
+        <div class="pipe-box" style="border-top:2px solid var(--purple);">
+          <div class="pipe-icon">💡</div>
+          <div class="pipe-num">Phase 4</div>
+          <div class="pipe-title">Explainability</div>
+          <div class="pipe-desc">SHAP TreeExplainer, risk tiers, waterfall plots, 5 business recs</div>
+          <div class="pipe-result">SHAP + Risk Tiers</div>
+        </div>
+        <div class="pipe-box" style="border-top:2px solid var(--gold);">
+          <div class="pipe-icon">🖥️</div>
+          <div class="pipe-num">Phase 5</div>
+          <div class="pipe-title">Prototype</div>
+          <div class="pipe-desc">Streamlit IDSS with prediction, analytics dashboard, AI chatbot</div>
+          <div class="pipe-result">Live Web App</div>
+        </div>
+      </div>
+      <div style="margin-top:28px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;">
+        <div class="card" style="text-align:center;padding:14px;">
+          <div style="font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">Primary Metric</div>
+          <div style="font-size:20px;font-weight:800;color:var(--accent);">Macro OVR AUC</div>
+        </div>
+        <div class="card" style="text-align:center;padding:14px;">
+          <div style="font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">Train / Test Split</div>
+          <div style="font-size:20px;font-weight:800;color:var(--accent2);">80 / 20</div>
+        </div>
+        <div class="card" style="text-align:center;padding:14px;">
+          <div style="font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">Imbalance Strategy</div>
+          <div style="font-size:20px;font-weight:800;color:var(--green);">class_weight='balanced'</div>
+        </div>
+        <div class="card" style="text-align:center;padding:14px;">
+          <div style="font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">Random State</div>
+          <div style="font-size:20px;font-weight:800;color:var(--gold);">42</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SLIDE 4 — PHASE 1: EDA
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="slide slide-phase1" id="s4">
+    <div class="full-w" style="max-width:1100px;">
+      <div class="phase-tag">📊 Phase 1 — Exploratory Data Analysis</div>
+      <h2 style="margin-bottom:20px;">Understanding the Dataset</h2>
+      <div class="grid-2" style="align-items:start;gap:20px;">
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div class="card card-accent">
+            <h3 style="margin-bottom:8px;">Key Findings</h3>
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:7px;">
+              <li><p>📌 <strong>1,941 steel plate samples</strong> with 27 numeric sensor readings from conveyor imaging</p></li>
+              <li><p>⚠️ <strong>Severe class imbalance (12:1)</strong> — Other_Faults (673) dominates; Dirtiness (55) is smallest</p></li>
+              <li><p>🔗 <strong>Multi-collinear features</strong> — X_Minimum/X_Maximum, perimeter pairs show high correlation</p></li>
+              <li><p>📐 <strong>All features numeric</strong>, no missing values — two binary steel-type flags (A300/A400)</p></li>
+              <li><p>🎯 <strong>Mutually exclusive labels</strong> — every plate has exactly one defect class (row sums to 1)</p></li>
+            </ul>
+          </div>
+          <div class="card card-red">
+            <h3 style="margin-bottom:6px;color:var(--red);">⚠ Class Imbalance Impact</h3>
+            <p>Standard accuracy is <strong>misleading</strong> — a model that always predicts Other_Faults gets 34.7% accuracy for "free". This drove the choice of <strong>Macro OVR AUC</strong> as the primary metric, which treats all classes equally.</p>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+            <div class="card" style="text-align:center;padding:10px 6px;">
+              <div style="font-size:18px;font-weight:800;color:var(--accent);">673</div>
+              <div style="font-size:10px;color:var(--muted);">Other_Faults</div>
+            </div>
+            <div class="card" style="text-align:center;padding:10px 6px;">
+              <div style="font-size:18px;font-weight:800;color:var(--orange);">402</div>
+              <div style="font-size:10px;color:var(--muted);">Bumps</div>
+            </div>
+            <div class="card" style="text-align:center;padding:10px 6px;">
+              <div style="font-size:18px;font-weight:800;color:var(--accent2);">391</div>
+              <div style="font-size:10px;color:var(--muted);">K_Scatch</div>
+            </div>
+            <div class="card" style="text-align:center;padding:10px 6px;">
+              <div style="font-size:18px;font-weight:800;color:var(--red);">55</div>
+              <div style="font-size:10px;color:var(--muted);">Dirtiness</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="img-frame">
+            <img src="../figures/phase2_class_distribution.png" alt="Class Distribution">
+          </div>
+          <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:6px;">Figure: Class distribution showing 12:1 imbalance ratio</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SLIDE 5 — PHASE 2: DATA PREPARATION
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="slide slide-phase2" id="s5">
+    <div class="full-w" style="max-width:1100px;">
+      <div class="phase-tag">⚙️ Phase 2 — Data Preparation</div>
+      <h2 style="margin-bottom:20px;">Feature Engineering &amp; Pipeline</h2>
+      <div class="grid-2" style="align-items:start;gap:20px;">
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div class="card card-cyan">
+            <h3 style="margin-bottom:10px;color:var(--accent2);">6 Engineered Features</h3>
+            <div style="display:flex;flex-direction:column;gap:7px;">
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span class="pill">Defect_Area_Ratio</span>
+                <span style="font-size:12px;color:var(--muted);padding-top:4px;">Pixels_Areas / (bounding_box + 1)</span>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span class="pill">Luminosity_Range</span>
+                <span style="font-size:12px;color:var(--muted);padding-top:4px;">Max_Lum − Min_Lum</span>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span class="pill">Aspect_Ratio</span>
+                <span style="font-size:12px;color:var(--muted);padding-top:4px;">X_Perimeter / (Y_Perimeter + ε)</span>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span class="pill">Log_Pixels_Areas</span>
+                <span style="font-size:12px;color:var(--muted);padding-top:4px;">log1p(Pixels_Areas) — scale invariant</span>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span class="pill">Edge_Strength</span>
+                <span style="font-size:12px;color:var(--muted);padding-top:4px;">Edges_Index × Edges_X × Edges_Y</span>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span class="pill">Thickness_Area_Interaction</span>
+                <span style="font-size:12px;color:var(--muted);padding-top:4px;">Thickness × Log_Pixels_Areas</span>
+              </div>
+            </div>
+          </div>
+          <div class="card card-green">
+            <h3 style="margin-bottom:8px;color:var(--green);">Preprocessing Pipeline</h3>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span class="badge badge-accent">27 raw features</span>
+              <span style="color:var(--muted);">→</span>
+              <span class="badge badge-cyan">Drop TypeOfSteel_A300</span>
+              <span style="color:var(--muted);">→</span>
+              <span class="badge badge-green">+6 engineered</span>
+              <span style="color:var(--muted);">→</span>
+              <span class="badge badge-gold">StandardScaler</span>
+              <span style="color:var(--muted);">→</span>
+              <span class="badge badge-accent">32 final features</span>
+            </div>
+            <p style="margin-top:10px;">Saved as <strong>preprocessing_pipeline.pkl</strong> — fits on training data only, applied to test set to prevent data leakage.</p>
+          </div>
+        </div>
+        <div>
+          <div class="img-frame">
+            <img src="../figures/phase2_mutual_information.png" alt="Mutual Information">
+          </div>
+          <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:6px;">Figure: Top 20 features by mutual information score — red bars are engineered features</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SLIDE 6 — PHASE 3: MODEL SELECTION
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="slide slide-phase3a" id="s6">
+    <div class="full-w" style="max-width:1100px;">
+      <div class="phase-tag">🤖 Phase 3 — Modelling</div>
+      <h2 style="margin-bottom:18px;">Model Selection &amp; Training</h2>
+      <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:22px;align-items:start;">
+        <div>
+          <div class="img-frame">
+            <img src="../figures/phase3_model_comparison.png" alt="Model Comparison">
+          </div>
+          <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:6px;">Figure: Macro OVR AUC comparison — highlighted bar = final chosen model</p>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <table>
+            <thead>
+              <tr><th>Model</th><th>Macro AUC</th><th>Accuracy</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Logistic Regression</td><td>0.934</td><td>65.6%</td></tr>
+              <tr><td>Random Forest</td><td>0.960</td><td>78.2%</td></tr>
+              <tr><td>XGBoost</td><td>0.961</td><td>76.4%</td></tr>
+              <tr><td>SVM (RBF)</td><td>0.954</td><td>71.5%</td></tr>
+              <tr><td>XGBoost (tuned)</td><td>0.951</td><td>73.5%</td></tr>
+              <tr class="highlight"><td><strong>Stacking Ensemble ★</strong></td><td class="hi">0.9545</td><td class="hi">76.4%</td></tr>
+              <tr><td>Soft Voting</td><td>0.963</td><td>78.2%</td></tr>
+            </tbody>
+          </table>
+          <div class="card card-gold">
+            <h3 style="margin-bottom:6px;color:var(--gold);">Why Stacking Ensemble?</h3>
+            <p>Although Soft Voting has marginally higher AUC (0.9626), the <strong>Stacking Ensemble</strong> was chosen for its structured meta-learner — enabling SHAP explainability via the RF base estimator while maintaining competitive performance and better Macro F1 (0.794).</p>
+          </div>
+          <div class="card card-accent" style="padding:12px 16px;">
+            <h3 style="margin-bottom:6px;">Architecture</h3>
+            <p style="font-size:12px;">
+              Base 1: <strong>RandomForest (300 trees, balanced)</strong><br>
+              Base 2: <strong>SVM (RBF kernel, balanced)</strong><br>
+              Meta: <strong>Logistic Regression (balanced)</strong>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SLIDE 7 — PHASE 3: RESULTS
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="slide slide-phase3b" id="s7">
+    <div class="full-w" style="max-width:1100px;">
+      <div class="phase-tag">🤖 Phase 3 — Results</div>
+      <h2 style="margin-bottom:18px;">Model Performance</h2>
+      <div class="grid-2" style="align-items:start;gap:20px;">
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+            <div class="metric-big card">
+              <div class="val">0.9545</div>
+              <div class="lbl">Macro AUC</div>
+            </div>
+            <div class="metric-big card">
+              <div class="val">76.4%</div>
+              <div class="lbl">Accuracy</div>
+            </div>
+            <div class="metric-big card">
+              <div class="val">0.794</div>
+              <div class="lbl">Macro F1</div>
+            </div>
+          </div>
+          <div class="img-frame">
+            <img src="../figures/phase3_per_class_auc.png" alt="Per-class AUC">
+          </div>
+          <p style="font-size:11px;color:var(--muted);text-align:center;">All 7 classes exceed the 0.85 target AUC</p>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div class="img-frame">
+            <img src="../figures/phase3_confusion_matrix.png" alt="Confusion Matrix">
+          </div>
+          <p style="font-size:11px;color:var(--muted);text-align:center;">Confusion Matrix — main confusion: Bumps ↔ Other_Faults</p>
+          <div class="card card-red">
+            <h3 style="font-size:13px;margin-bottom:4px;color:var(--red);">⚠ Weakest Class: Other_Faults (AUC 0.890)</h3>
+            <p style="font-size:12px;">Most confused with Bumps and Pastry due to the ambiguous "catch-all" nature of this class. This is the focus of future sub-type analysis.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SLIDE 8 — PHASE 4: SHAP EXPLAINABILITY
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="slide slide-phase4a" id="s8">
+    <div class="full-w" style="max-width:1100px;">
+      <div class="phase-tag">💡 Phase 4 — Explainability</div>
+      <h2 style="margin-bottom:18px;">SHAP Analysis — Why Does the Model Decide?</h2>
+      <div class="grid-2" style="align-items:start;gap:20px;">
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div class="card card-purple">
+            <h3 style="margin-bottom:6px;color:var(--purple);">SHAP TreeExplainer</h3>
+            <p>Applied on the <strong>Random Forest base estimator</strong> of the stacking model. SHAP (SHapley Additive exPlanations) fairly attributes the prediction to each feature, satisfying local and global explainability requirements.</p>
+          </div>
+          <div class="img-frame">
+            <img src="../figures/phase4_shap_bar.png" alt="SHAP Feature Importance">
+          </div>
+          <p style="font-size:11px;color:var(--muted);text-align:center;">Top 15 features by mean |SHAP| across all classes</p>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div class="card card-accent">
+            <h3 style="margin-bottom:8px;">Top 5 Global Drivers</h3>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:13px;color:var(--text);">1. Length_of_Conveyer</span>
+                <span class="badge badge-accent">SHAP 0.019</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:13px;color:var(--text);">2. TypeOfSteel_A400</span>
+                <span class="badge badge-cyan">SHAP 0.016</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:13px;color:var(--text);">3. Orientation_Index</span>
+                <span class="badge badge-accent">SHAP 0.015</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:13px;color:var(--text);">4. Aspect_Ratio</span>
+                <span class="badge badge-gold">Engineered</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:13px;color:var(--text);">5. Outside_X_Index</span>
+                <span class="badge badge-accent">SHAP 0.013</span>
+              </div>
+            </div>
+          </div>
+          <div class="img-frame">
+            <img src="../figures/phase4_waterfall_tp.png" alt="SHAP Waterfall">
+          </div>
+          <p style="font-size:11px;color:var(--muted);text-align:center;">SHAP waterfall — True Positive: Dirtiness predicted at 88% confidence</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SLIDE 9 — PHASE 4: RISK TIERS
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="slide slide-phase4b" id="s9">
+    <div class="full-w" style="max-width:1100px;">
+      <div class="phase-tag">💡 Phase 4 — Decision Framework</div>
+      <h2 style="margin-bottom:18px;">Risk Tiers &amp; Operational Decision Rules</h2>
+      <div class="grid-2" style="align-items:start;gap:20px;">
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div class="risk-row">
+              <div class="risk-color" style="background:var(--red);box-shadow:0 0 8px var(--red);"></div>
+              <div class="risk-label" style="color:var(--red);">High</div>
+              <div class="risk-detail">Confidence ≥ 70% → <strong>Auto pass/reject</strong> — no operator needed</div>
+              <div class="risk-stat" style="color:var(--red);">65.8% of plates</div>
+            </div>
+            <div class="risk-row">
+              <div class="risk-color" style="background:var(--orange);box-shadow:0 0 8px var(--orange);"></div>
+              <div class="risk-label" style="color:var(--orange);">Medium</div>
+              <div class="risk-detail">Confidence 40–70% → <strong>Human review</strong> (60-second check)</div>
+              <div class="risk-stat" style="color:var(--orange);">26.7% of plates</div>
+            </div>
+            <div class="risk-row">
+              <div class="risk-color" style="background:var(--green);box-shadow:0 0 8px var(--green);"></div>
+              <div class="risk-label" style="color:var(--green);">Low</div>
+              <div class="risk-detail">Confidence &lt; 40% → <strong>Escalate to senior QC</strong></div>
+              <div class="risk-stat" style="color:var(--green);">7.5% of plates</div>
+            </div>
+          </div>
+          <div class="card card-gold">
+            <h3 style="margin-bottom:6px;color:var(--gold);">Business Impact</h3>
+            <p>At the High tier, the model achieves <strong>88.3% accuracy</strong> on 65.8% of production volume — enabling <strong>automation of the majority of QC decisions</strong> while focusing human attention only where it matters.</p>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="metric-big card">
+              <div class="val">88.3%</div>
+              <div class="lbl">High-tier Accuracy</div>
+            </div>
+            <div class="metric-big card">
+              <div class="val">65.8%</div>
+              <div class="lbl">Auto-handled Volume</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="img-frame">
+            <img src="../figures/phase4_risk_tiers.png" alt="Risk Tiers">
+          </div>
+          <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:6px;">Figure: Risk Tier × Predicted Class — counts (left) and % (right)</p>
+          <div class="card card-accent" style="margin-top:12px;">
+            <h3 style="font-size:13px;margin-bottom:6px;">Key Observation</h3>
+            <p style="font-size:12px;"><strong>K_Scatch</strong> has the highest proportion of High-tier predictions (75 plates, 29.3%) — the model is very certain about this defect class. <strong>Bumps &amp; Other_Faults</strong> have the most Medium-tier uncertainty, requiring more human oversight.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SLIDE 10 — PHASE 5: PROTOTYPE
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="slide slide-phase5a" id="s10">
+    <div class="full-w" style="max-width:1100px;">
+      <div class="phase-tag">🖥️ Phase 5 — IDSS Prototype</div>
+      <h2 style="margin-bottom:18px;">Streamlit Web Application</h2>
+      <div class="grid-2" style="align-items:start;gap:22px;">
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div class="card card-cyan">
+            <h3 style="margin-bottom:8px;color:var(--accent2);">🔍 Tab 1 — Prediction</h3>
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:6px;">
+              <li><p>📝 <strong>Manual Entry</strong> — 27 sensor fields with training-set median defaults, 🎲 Randomize button for demo</p></li>
+              <li><p>📂 <strong>CSV Batch Upload</strong> — classify hundreds of plates at once</p></li>
+              <li><p>🎯 Shows predicted class, confidence %, risk badge (High/Medium/Low)</p></li>
+              <li><p>📊 Class probability bar chart for all 7 defect types</p></li>
+              <li><p>🌊 <strong>SHAP waterfall plot</strong> — per-prediction feature attribution</p></li>
+              <li><p>✅ Recommended factory action (Reject / Hold / Conditional Accept)</p></li>
+            </ul>
+          </div>
+          <div class="card card-purple">
+            <h3 style="margin-bottom:8px;color:var(--purple);">🤖 Tab 3 — QC AI Assistant</h3>
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:6px;">
+              <li><p>💬 Powered by <strong>Groq API (LLaMA 3.3 70B)</strong></p></li>
+              <li><p>📌 Receives full prediction context — defect class, SHAP values, risk tier, all probabilities</p></li>
+              <li><p>📊 In batch mode: receives complete dashboard summary with all chart data</p></li>
+              <li><p>🗣️ Answers natural language questions about predictions and QC procedures</p></li>
+              <li><p>💡 Context-aware suggested question buttons per defect type</p></li>
+            </ul>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div class="card" style="padding:20px;text-align:center;">
+            <div style="font-size:40px;margin-bottom:10px;">🏭</div>
+            <h3 style="margin-bottom:8px;">Technology Stack</h3>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;">
+              <span class="badge badge-accent">Streamlit</span>
+              <span class="badge badge-cyan">scikit-learn 1.8</span>
+              <span class="badge badge-green">SHAP</span>
+              <span class="badge badge-gold">Plotly</span>
+              <span class="badge badge-accent">Groq API</span>
+              <span class="badge badge-purple">LLaMA 3.3 70B</span>
+              <span class="badge badge-cyan">Python 3.11</span>
+              <span class="badge badge-green">joblib</span>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="metric-big card">
+              <div class="val">3</div>
+              <div class="lbl">App Tabs</div>
+            </div>
+            <div class="metric-big card">
+              <div class="val">27</div>
+              <div class="lbl">Input Features</div>
+            </div>
+            <div class="metric-big card">
+              <div class="val">8</div>
+              <div class="lbl">Dashboard Charts</div>
+            </div>
+            <div class="metric-big card">
+              <div class="val">Live</div>
+              <div class="lbl">SHAP per Prediction</div>
+            </div>
+          </div>
+          <div class="card card-gold">
+            <h3 style="font-size:13px;margin-bottom:4px;">Run Command</h3>
+            <code style="font-size:12px;color:var(--accent2);font-family:'Consolas',monospace;">
+              python -m streamlit run prototype/app.py
+            </code>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SLIDE 11 — ANALYTICS DASHBOARD
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="slide slide-phase5b" id="s11">
+    <div class="full-w" style="max-width:1160px;">
+      <div class="phase-tag">📊 Phase 5 — Analytics Dashboard</div>
+      <h2 style="margin-bottom:16px;">Batch Analytics — PowerBI-style Visualisations</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div class="dash-img">
+          <img src="../Dashborad Analytics/newplot.png" alt="Defect Distribution">
+          <div class="dash-caption">Defect Class Distribution (Donut)</div>
+        </div>
+        <div class="dash-img">
+          <img src="../Dashborad Analytics/newplot (1).png" alt="Risk Tier Breakdown">
+          <div class="dash-caption">Risk Tier Breakdown</div>
+        </div>
+        <div class="dash-img">
+          <img src="../Dashborad Analytics/newplot (3).png" alt="Probability Heatmap">
+          <div class="dash-caption">Avg Class Probability Heatmap</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:12px;">
+        <div class="dash-img">
+          <img src="../Dashborad Analytics/newplot (2).png" alt="Confidence Box Plot">
+          <div class="dash-caption">Confidence Distribution by Defect Class</div>
+        </div>
+        <div class="dash-img">
+          <img src="../Dashborad Analytics/newplot (4).png" alt="SHAP Importance">
+          <div class="dash-caption">SHAP Global Feature Importance (batch)</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:10px;padding:10px 16px;">
+        <p style="font-size:12px;text-align:center;">
+          Dashboard includes: <strong>KPI cards · Defect donut · Risk tier bars · Confidence box plots · Probability heatmap · SHAP beeswarm · Defect×Risk stacked bars · Actionable summary table</strong> — all charts are interactive (Plotly) and the AI chatbot can explain every panel.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SLIDE 12 — BUSINESS RECOMMENDATIONS
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="slide slide-recs" id="s12">
+    <div class="full-w" style="max-width:1100px;">
+      <div class="slide-label">Actionable Intelligence</div>
+      <h2 style="margin-bottom:20px;">5 Business Recommendations</h2>
+      <div class="grid-2" style="align-items:start;gap:16px;">
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div class="rec-card" style="border-top:2px solid var(--green);">
+            <div class="rec-num">01 — Automation</div>
+            <div class="rec-title">Auto pass/reject on High-confidence plates</div>
+            <div class="rec-body">Deploy automated actuators on the High-tier queue (≥70% confidence). Removes manual bottleneck for the majority of production.</div>
+            <div class="rec-evidence">Evidence: 65.8% of plates qualify at 88.3% accuracy → estimated 42% reduction in operator inspection time</div>
+          </div>
+          <div class="rec-card" style="border-top:2px solid var(--accent2);">
+            <div class="rec-num">02 — Sensor Maintenance</div>
+            <div class="rec-title">Monthly calibration of Length_of_Conveyer</div>
+            <div class="rec-body">Length_of_Conveyer is the #1 SHAP driver (mean |SHAP| = 0.019). Sensor drift will directly degrade model predictions.</div>
+            <div class="rec-evidence">Evidence: Top SHAP feature across all 7 defect classes — calibration SLA should match model retraining frequency</div>
+          </div>
+          <div class="rec-card" style="border-top:2px solid var(--red);">
+            <div class="rec-num">03 — Safety Net</div>
+            <div class="rec-title">Mandatory human review for Other_Faults</div>
+            <div class="rec-body">Other_Faults is the model's weakest class (AUC 0.890). All predictions in this class should bypass automation regardless of confidence tier.</div>
+            <div class="rec-evidence">Evidence: AUC 0.890 = lowest of all classes; confused with Bumps (0.17) and Pastry (0.08)</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div class="rec-card" style="border-top:2px solid var(--accent);">
+            <div class="rec-num">04 — Active Learning</div>
+            <div class="rec-title">Monthly retraining on Medium-tier plates</div>
+            <div class="rec-body">Medium-tier plates (40–70% confidence, 26.7% of volume) are the most informative for model improvement. Operator-confirmed labels from this tier should feed the next retraining cycle.</div>
+            <div class="rec-evidence">Evidence: ~520 Medium-tier plates per 1,941 batch → rich training signal with minimal annotation cost</div>
+          </div>
+          <div class="rec-card" style="border-top:2px solid var(--orange);">
+            <div class="rec-num">05 — Camera Diagnostics</div>
+            <div class="rec-title">Alert on consecutive Stains/Dirtiness predictions</div>
+            <div class="rec-body">Consecutive Stains or Dirtiness predictions on otherwise-clean batches likely indicate a dirty camera lens rather than true defects. Trigger a cleaning alert automatically.</div>
+            <div class="rec-evidence">Evidence: Stains (AUC 0.961) &amp; Dirtiness (AUC 0.991) are environment-sensitive — surface contamination on lens mimics plate contamination</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+            <div class="metric-big card">
+              <div class="val">0.9545</div>
+              <div class="lbl">Macro AUC</div>
+            </div>
+            <div class="metric-big card">
+              <div class="val">0.996</div>
+              <div class="lbl">Best Class AUC</div>
+            </div>
+            <div class="metric-big card">
+              <div class="val">5</div>
+              <div class="lbl">Actionable Recs</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SLIDE 13 — CONCLUSION
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="slide slide-conclusion" id="s13">
+    <div class="full-w" style="max-width:1100px;text-align:center;">
+      <div class="slide-label">Summary &amp; Impact</div>
+      <h2 style="margin-bottom:24px;">Project Achievements</h2>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">
+        <div class="card" style="text-align:center;padding:22px 12px;">
+          <div class="glow-num">0.9545</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:8px;letter-spacing:.04em;">Macro OVR AUC<br>exceeds 0.85 target</div>
+        </div>
+        <div class="card" style="text-align:center;padding:22px 12px;">
+          <div class="glow-num">7/7</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:8px;letter-spacing:.04em;">Defect classes above<br>AUC 0.85 threshold</div>
+        </div>
+        <div class="card" style="text-align:center;padding:22px 12px;">
+          <div class="glow-num">65.8%</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:8px;letter-spacing:.04em;">Of production volume<br>automatable at 88.3%</div>
+        </div>
+        <div class="card" style="text-align:center;padding:22px 12px;">
+          <div class="glow-num">Live</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:8px;letter-spacing:.04em;">Streamlit IDSS with<br>AI chatbot deployed</div>
+        </div>
+      </div>
+      <div class="grid-2" style="text-align:left;gap:20px;margin-bottom:20px;">
+        <div class="card card-green">
+          <h3 style="margin-bottom:8px;color:var(--green);">✅ Deliverables Completed</h3>
+          <ul style="list-style:none;display:flex;flex-direction:column;gap:5px;">
+            <li><p>📊 Phase 1: EDA &amp; imbalance analysis</p></li>
+            <li><p>⚙️ Phase 2: Feature engineering pipeline (32 features)</p></li>
+            <li><p>🤖 Phase 3: Stacking ensemble — Macro AUC 0.9545</p></li>
+            <li><p>💡 Phase 4: SHAP explainability + 3-tier risk framework</p></li>
+            <li><p>🖥️ Phase 5: Streamlit IDSS + Analytics Dashboard + AI chatbot</p></li>
+          </ul>
+        </div>
+        <div class="card card-accent">
+          <h3 style="margin-bottom:8px;color:var(--accent);">🚀 Future Work</h3>
+          <ul style="list-style:none;display:flex;flex-direction:column;gap:5px;">
+            <li><p>🔬 Sub-type analysis for Other_Faults by thickness quartile</p></li>
+            <li><p>📡 Data drift monitoring dashboard</p></li>
+            <li><p>🔄 Active learning pipeline with Medium-tier operator feedback</p></li>
+            <li><p>📱 Mobile-friendly operator interface for shop-floor use</p></li>
+            <li><p>🌐 REST API wrapper for ERP system integration</p></li>
+          </ul>
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;justify-content:center;align-items:center;">
+        <span class="badge badge-accent" style="font-size:13px;padding:6px 18px;">Mohamed Sherif — 221000142</span>
+        <span style="color:var(--muted);">·</span>
+        <span class="badge badge-cyan" style="font-size:13px;padding:6px 18px;">Mohamed Osama — 221001647</span>
+        <span style="color:var(--muted);">·</span>
+        <span class="badge badge-gold" style="font-size:13px;padding:6px 18px;">AIS431 — 2025/2026</span>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /slides -->
+
+<script>
+  const TOTAL = 13;
+  let current = 1;
+
+  function showSlide(n) {
+    document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+    document.getElementById('s' + n).classList.add('active');
+    document.getElementById('counter').textContent = n + ' / ' + TOTAL;
+    document.getElementById('progress-bar').style.width = (n / TOTAL * 100) + '%';
+    document.getElementById('btn-prev').style.opacity = n === 1 ? '.3' : '1';
+    document.getElementById('btn-next').style.opacity = n === TOTAL ? '.3' : '1';
+    document.getElementById('btn-prev').style.pointerEvents = n === 1 ? 'none' : 'all';
+    document.getElementById('btn-next').style.pointerEvents = n === TOTAL ? 'none' : 'all';
+  }
+
+  function changeSlide(dir) {
+    const next = current + dir;
+    if (next < 1 || next > TOTAL) return;
+    current = next;
+    showSlide(current);
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') changeSlide(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')                     changeSlide(-1);
+  });
+
+  // Touch swipe support
+  let touchX = 0;
+  document.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; });
+  document.addEventListener('touchend',   e => {
+    const dx = touchX - e.changedTouches[0].clientX;
+    if (Math.abs(dx) > 50) changeSlide(dx > 0 ? 1 : -1);
+  });
+
+  showSlide(1);
+</script>
+</body>
+</html>

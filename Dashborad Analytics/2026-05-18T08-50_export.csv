@@ -1,0 +1,8 @@
+﻿Defect Class,Count,% of Total,🔴 High,🟠 Medium,🟢 Low,Avg Confidence,Action
+Other_Faults,26,26.0%,15,10,1,67.1%,Human review — ambiguous category
+Bumps,20,20.0%,11,5,4,67.3%,Conditional accept — check tolerance spec
+Pastry,18,18.0%,11,5,2,69.3%,Reject — send to scrap line
+K_Scatch,15,15.0%,15,0,0,96.2%,Reject — cross-direction scratch
+Z_Scratch,11,11.0%,10,1,0,94.2%,"Reject — deep scratch, unusable"
+Stains,6,6.0%,5,0,1,84.4%,Hold — chemical cleaning possible
+Dirtiness,4,4.0%,4,0,0,91.0%,Hold — surface cleaning + re-inspect
