@@ -106,6 +106,8 @@
   .slide-phase5b  { background: radial-gradient(ellipse at 45% 55%, #0a0520 0%, #07091a 70%); }
   .slide-recs     { background: radial-gradient(ellipse at 50% 50%, #1a0f05 0%, #07091a 70%); }
   .slide-conclusion { background: radial-gradient(ellipse at 50% 40%, #071a1a 0%, #07091a 70%); }
+  .slide-ethics   { background: radial-gradient(ellipse at 40% 60%, #1a0520 0%, #07091a 70%); }
+  .slide-thanks   { background: radial-gradient(ellipse at 50% 50%, #0d1a2e 0%, #07091a 65%); }
 
   /* ── Typography ── */
   .slide-label {
@@ -251,6 +253,18 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
+    position: relative;
+  }
+  .rec-impact { font-size: 11px; color: #67e8f9; margin-top: 2px; font-style: italic; }
+  .priority-badge {
+    position: absolute;
+    top: 10px; right: 10px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
   }
   .rec-num {
     font-size: 11px;
@@ -584,11 +598,17 @@
               </div>
               <div style="display:flex;gap:10px;align-items:flex-start;">
                 <span class="pill">Aspect_Ratio</span>
-                <span style="font-size:12px;color:var(--muted);padding-top:4px;">X_Perimeter / (Y_Perimeter + ε)</span>
+                <div>
+                  <span style="font-size:12px;color:var(--muted);padding-top:4px;">X_Perimeter / (Y_Perimeter + ε)</span>
+                  <div style="font-size:0.72rem;font-style:italic;color:#94a3b8;margin-top:2px;">Scratches are elongated — high ratio. Bumps are circular — ratio near 1.</div>
+                </div>
               </div>
               <div style="display:flex;gap:10px;align-items:flex-start;">
                 <span class="pill">Log_Pixels_Areas</span>
-                <span style="font-size:12px;color:var(--muted);padding-top:4px;">log1p(Pixels_Areas) — scale invariant</span>
+                <div>
+                  <span style="font-size:12px;color:var(--muted);padding-top:4px;">log1p(Pixels_Areas) — scale invariant</span>
+                  <div style="font-size:0.72rem;font-style:italic;color:#94a3b8;margin-top:2px;">Compresses extreme outliers; ranked 8th of 32 features by mutual information.</div>
+                </div>
               </div>
               <div style="display:flex;gap:10px;align-items:flex-start;">
                 <span class="pill">Edge_Strength</span>
@@ -633,14 +653,14 @@
     <div class="full-w" style="max-width:1100px;">
       <div class="phase-tag">🤖 Phase 3 — Modelling</div>
       <h2 style="margin-bottom:18px;">Model Selection &amp; Training</h2>
-      <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:22px;align-items:start;">
+      <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:22px;align-items:start;">
         <div>
           <div class="img-frame">
             <img src="../figures/phase3_model_comparison.png" alt="Model Comparison">
           </div>
           <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:6px;">Figure: Macro OVR AUC comparison — highlighted bar = final chosen model</p>
         </div>
-        <div style="display:flex;flex-direction:column;gap:12px;">
+        <div style="display:flex;flex-direction:column;gap:12px;overflow:visible;min-width:0;">
           <table>
             <thead>
               <tr><th>Model</th><th>Macro AUC</th><th>Accuracy</th></tr>
@@ -657,7 +677,7 @@
           </table>
           <div class="card card-gold">
             <h3 style="margin-bottom:6px;color:var(--gold);">Why Stacking Ensemble?</h3>
-            <p>Although Soft Voting has marginally higher AUC (0.9626), the <strong>Stacking Ensemble</strong> was chosen for its structured meta-learner — enabling SHAP explainability via the RF base estimator while maintaining competitive performance and better Macro F1 (0.794).</p>
+            <p style="font-size:0.82rem;">Although Soft Voting has marginally higher AUC (0.9626), the <strong>Stacking Ensemble</strong> was chosen for its structured meta-learner — enabling SHAP explainability via the RF base estimator while maintaining competitive performance and better Macro Recall (0.821). Critically, Soft Voting includes an SVM component that blocks SHAP TreeExplainer, making per-prediction explanations computationally infeasible in a real-time factory application.</p>
           </div>
           <div class="card card-accent" style="padding:12px 16px;">
             <h3 style="margin-bottom:6px;">Architecture</h3>
@@ -762,6 +782,7 @@
             <img src="../figures/phase4_waterfall_tp.png" alt="SHAP Waterfall">
           </div>
           <p style="font-size:11px;color:var(--muted);text-align:center;">SHAP waterfall — True Positive: Dirtiness predicted at 88% confidence</p>
+          <p style="font-size:0.72rem;color:#94a3b8;font-style:italic;margin-top:6px;text-align:center;"><em>Three cases analysed in full: True Positive (shown), True Negative (clean plate, conf. 0.91), and a misclassification (Predicted Pastry / Actual Other_Faults — driven by overlapping edge features). Full waterfall plots in the Phase 4 notebook.</em></p>
         </div>
       </div>
     </div>
@@ -940,45 +961,134 @@
   </div>
 
   <!-- ══════════════════════════════════════════════════════
-       SLIDE 12 — BUSINESS RECOMMENDATIONS
+       SLIDE 12 — LIMITATIONS, ETHICS & FUTURE WORK
   ═══════════════════════════════════════════════════════════ -->
-  <div class="slide slide-recs" id="s12">
+  <div class="slide slide-ethics" id="s12">
+    <div class="full-w" style="max-width:1100px;">
+      <div class="phase-tag">⚖️ Phase 4 — Ethical Considerations</div>
+      <h2 style="margin-bottom:18px;">Limitations, Ethics &amp; Future Work</h2>
+      <div class="grid-2" style="align-items:start;gap:20px;">
+
+        <!-- LEFT: Limitations & Ethics -->
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div class="card card-orange">
+            <h3 style="margin-bottom:8px;color:var(--orange);">⚠️ Model Limitations</h3>
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:6px;">
+              <li><p><strong>Other_Faults AUC = 0.890 (lowest class)</strong> — definitionally heterogeneous "catch-all" category. Sub-type annotations needed to improve this class.</p></li>
+              <li><p><strong>SHAP is approximate for the stacking layer</strong> — TreeExplainer is applied to the RF base estimator only; the meta-learner's combination weights are not reflected in attributions.</p></li>
+              <li><p><strong>Small test support for rare classes</strong> — Stains (14 test samples) and Dirtiness (11 test samples). AUC estimates have high variance despite strong scores.</p></li>
+            </ul>
+          </div>
+          <div class="card card-red">
+            <h3 style="margin-bottom:8px;color:var(--red);">🔒 Ethical &amp; Operational Risks</h3>
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:6px;">
+              <li><p><strong>No data drift detection</strong> — if manufacturing conditions change (new steel grades, camera firmware updates), model performance may degrade silently without a monitoring dashboard.</p></li>
+              <li><p><strong>Single-facility dataset</strong> — UCI data originates from one plant. Performance may not generalise to facilities with different conveyor systems or imaging setups.</p></li>
+              <li><p><strong>Automation must not replace human judgment for safety-critical batches</strong> — the High-tier (88.3% accuracy) is suitable for decision <em>support</em>, not unreviewed auto-rejection on structural steel components.</p></li>
+            </ul>
+          </div>
+          <div class="card" style="border-left:3px solid #60a5fa;">
+            <h3 style="margin-bottom:8px;color:#60a5fa;">🛡️ Proposed Mitigations</h3>
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:5px;">
+              <li><p>Collect annotated sub-types for Other_Faults (mild irregularity / multi-defect / unclassified).</p></li>
+              <li><p>Deploy a Population Stability Index (PSI) monitor on top SHAP features — alert when PSI &gt; 0.2.</p></li>
+              <li><p>Require human sign-off for any batch where &gt; 20% of plates fall in the Low risk tier (possible sensor fault).</p></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- RIGHT: Future Work -->
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div class="card card-accent">
+            <h3 style="margin-bottom:12px;color:var(--accent);">🚀 Future Work</h3>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;gap:12px;align-items:flex-start;">
+                <span style="font-size:18px;flex-shrink:0;">🔬</span>
+                <p><strong>Other_Faults sub-type analysis</strong> stratified by Steel_Plate_Thickness quartile — break the catch-all class into annotatable sub-categories.</p>
+              </div>
+              <div style="display:flex;gap:12px;align-items:flex-start;">
+                <span style="font-size:18px;flex-shrink:0;">💡</span>
+                <p><strong>Real-time data drift monitoring dashboard</strong> (PSI on Length_of_Conveyer, TypeOfSteel_A400, Orientation_Index) — detect silent model degradation.</p>
+              </div>
+              <div style="display:flex;gap:12px;align-items:flex-start;">
+                <span style="font-size:18px;flex-shrink:0;">🔄</span>
+                <p><strong>Active learning pipeline</strong> — Medium-tier operator verdicts feed monthly retraining cycle, progressively improving confidence boundaries.</p>
+              </div>
+              <div style="display:flex;gap:12px;align-items:flex-start;">
+                <span style="font-size:18px;flex-shrink:0;">🌐</span>
+                <p><strong>REST API wrapper (FastAPI)</strong> for ERP/MES integration — real-time scoring without Streamlit overhead.</p>
+              </div>
+              <div style="display:flex;gap:12px;align-items:flex-start;">
+                <span style="font-size:18px;flex-shrink:0;">📱</span>
+                <p><strong>Mobile-optimised shop-floor interface</strong> for on-site operator use — simplified risk badge + action display.</p>
+              </div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="metric-big card">
+              <div class="val" style="font-size:clamp(18px,2vw,28px);">0.890</div>
+              <div class="lbl">Other_Faults AUC<br><span style="color:var(--orange);">Needs sub-typing</span></div>
+            </div>
+            <div class="metric-big card">
+              <div class="val" style="font-size:clamp(18px,2vw,28px);">88.3%</div>
+              <div class="lbl">High-tier Accuracy<br><span style="color:var(--green);">Support, not replace</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SLIDE 13 — BUSINESS RECOMMENDATIONS
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="slide slide-recs" id="s13">
     <div class="full-w" style="max-width:1100px;">
       <div class="slide-label">Actionable Intelligence</div>
       <h2 style="margin-bottom:20px;">5 Business Recommendations</h2>
       <div class="grid-2" style="align-items:start;gap:16px;">
         <div style="display:flex;flex-direction:column;gap:12px;">
           <div class="rec-card" style="border-top:2px solid var(--green);">
+            <span class="priority-badge" style="background:rgba(34,197,94,.15);color:#22c55e;border:1px solid rgba(34,197,94,.3);">HIGH</span>
             <div class="rec-num">01 — Automation</div>
             <div class="rec-title">Auto pass/reject on High-confidence plates</div>
             <div class="rec-body">Deploy automated actuators on the High-tier queue (≥70% confidence). Removes manual bottleneck for the majority of production.</div>
             <div class="rec-evidence">Evidence: 65.8% of plates qualify at 88.3% accuracy → estimated 42% reduction in operator inspection time</div>
           </div>
           <div class="rec-card" style="border-top:2px solid var(--accent2);">
+            <span class="priority-badge" style="background:rgba(34,197,94,.15);color:#22c55e;border:1px solid rgba(34,197,94,.3);">HIGH</span>
             <div class="rec-num">02 — Sensor Maintenance</div>
             <div class="rec-title">Monthly calibration of Length_of_Conveyer</div>
             <div class="rec-body">Length_of_Conveyer is the #1 SHAP driver (mean |SHAP| = 0.019). Sensor drift will directly degrade model predictions.</div>
             <div class="rec-evidence">Evidence: Top SHAP feature across all 7 defect classes — calibration SLA should match model retraining frequency</div>
+            <div class="rec-impact">Impact: Sensor miscalibration on the #1 SHAP driver could silently degrade all 7 class predictions — calibration cost is negligible relative to misclassification risk.</div>
           </div>
           <div class="rec-card" style="border-top:2px solid var(--red);">
+            <span class="priority-badge" style="background:rgba(34,197,94,.15);color:#22c55e;border:1px solid rgba(34,197,94,.3);">HIGH</span>
             <div class="rec-num">03 — Safety Net</div>
             <div class="rec-title">Mandatory human review for Other_Faults</div>
             <div class="rec-body">Other_Faults is the model's weakest class (AUC 0.890). All predictions in this class should bypass automation regardless of confidence tier.</div>
             <div class="rec-evidence">Evidence: AUC 0.890 = lowest of all classes; confused with Bumps (0.17) and Pastry (0.08)</div>
+            <div class="rec-impact">Impact: Prevents automated mass-rejection/acceptance of ~673 plates/batch (34.7% of volume) based on the model's weakest and most ambiguous class.</div>
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:12px;">
           <div class="rec-card" style="border-top:2px solid var(--accent);">
+            <span class="priority-badge" style="background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3);">MEDIUM</span>
             <div class="rec-num">04 — Active Learning</div>
             <div class="rec-title">Monthly retraining on Medium-tier plates</div>
             <div class="rec-body">Medium-tier plates (40–70% confidence, 26.7% of volume) are the most informative for model improvement. Operator-confirmed labels from this tier should feed the next retraining cycle.</div>
             <div class="rec-evidence">Evidence: ~520 Medium-tier plates per 1,941 batch → rich training signal with minimal annotation cost</div>
+            <div class="rec-impact">Impact: ~520 new annotated samples per batch; monthly retraining could progressively close the Other_Faults AUC gap from 0.890 toward the 0.95+ range seen in other classes.</div>
           </div>
           <div class="rec-card" style="border-top:2px solid var(--orange);">
+            <span class="priority-badge" style="background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3);">MEDIUM</span>
             <div class="rec-num">05 — Camera Diagnostics</div>
             <div class="rec-title">Alert on consecutive Stains/Dirtiness predictions</div>
             <div class="rec-body">Consecutive Stains or Dirtiness predictions on otherwise-clean batches likely indicate a dirty camera lens rather than true defects. Trigger a cleaning alert automatically.</div>
             <div class="rec-evidence">Evidence: Stains (AUC 0.961) &amp; Dirtiness (AUC 0.991) are environment-sensitive — surface contamination on lens mimics plate contamination</div>
+            <div class="rec-impact">Impact: Probability of 5 genuine consecutive Stains/Dirtiness plates ≈ 0.000012 — any such run almost certainly signals a hardware fault, not a true defect cluster.</div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
             <div class="metric-big card">
@@ -1000,9 +1110,9 @@
   </div>
 
   <!-- ══════════════════════════════════════════════════════
-       SLIDE 13 — CONCLUSION
+       SLIDE 14 — CONCLUSION
   ═══════════════════════════════════════════════════════════ -->
-  <div class="slide slide-conclusion" id="s13">
+  <div class="slide slide-conclusion" id="s14">
     <div class="full-w" style="max-width:1100px;text-align:center;">
       <div class="slide-label">Summary &amp; Impact</div>
       <h2 style="margin-bottom:24px;">Project Achievements</h2>
@@ -1056,10 +1166,50 @@
     </div>
   </div>
 
+  <!-- ══════════════════════════════════════════════════════
+       SLIDE 15 — THANK YOU
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="slide slide-thanks" id="s15">
+    <div style="text-align:center;max-width:900px;">
+      <div style="font-size:64px;margin-bottom:20px;">🏭</div>
+      <h1 style="margin-bottom:10px;">
+        <span style="background:linear-gradient(135deg,#818cf8,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+          Thank You
+        </span>
+      </h1>
+      <p style="font-size:17px;color:var(--muted);margin-bottom:36px;max-width:580px;margin-left:auto;margin-right:auto;">
+        Steel Plates Defect IDSS — AIS431 Final Project
+      </p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:560px;margin:0 auto 32px;">
+        <div class="card" style="text-align:center;padding:20px;">
+          <div style="font-size:28px;margin-bottom:8px;">👨‍💻</div>
+          <div class="title-name">Mohamed Sherif</div>
+          <div class="title-id">221000142</div>
+        </div>
+        <div class="card" style="text-align:center;padding:20px;">
+          <div style="font-size:28px;margin-bottom:8px;">👨‍💻</div>
+          <div class="title-name">Mohamed Osama</div>
+          <div class="title-id">221001647</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:32px;">
+        <span class="badge badge-accent">Macro AUC 0.9545</span>
+        <span class="badge badge-green">7/7 Classes &gt; 0.85</span>
+        <span class="badge badge-cyan">65.8% Automatable</span>
+        <span class="badge badge-gold">5 Business Recs</span>
+        <span class="badge badge-accent">AI Chatbot</span>
+      </div>
+      <div class="card" style="display:inline-block;padding:14px 32px;border-color:rgba(129,140,248,.2);">
+        <p style="font-size:13px;color:var(--muted);">Questions &amp; Discussion</p>
+        <p style="font-size:11px;color:var(--muted);margin-top:4px;">Supervised by <strong style="color:var(--text);">Dr. Nehal Ali</strong> · AIS431 2025/2026</p>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /slides -->
 
 <script>
-  const TOTAL = 13;
+  const TOTAL = 15;
   let current = 1;
 
   function showSlide(n) {
