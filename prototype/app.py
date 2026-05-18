@@ -13,6 +13,8 @@ sys.path.insert(0, str(PROJECT_ROOT))
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import plotly.express as px
+import plotly.graph_objects as go
 import joblib
 import shap
 import streamlit as st
@@ -42,11 +44,16 @@ def load_artefacts():
 model, pipeline, label_classes, le, feat_names, rf, explainer = load_artefacts()
 final_classes = list(label_classes)
 
-# ── Training-set medians for defaults ─────────────────────────────────────────
+# ── Training-set medians + realistic ranges ───────────────────────────────────
 @st.cache_data
 def get_train_medians():
     X_raw = pd.read_csv(PROJECT_ROOT / "data" / "raw" / "features.csv")
     return X_raw.median()
+
+@st.cache_data
+def get_feature_ranges():
+    X_raw = pd.read_csv(PROJECT_ROOT / "data" / "raw" / "features.csv")
+    return X_raw.quantile(0.05).to_dict(), X_raw.quantile(0.95).to_dict()
 
 train_medians = get_train_medians()
 
@@ -80,11 +87,33 @@ ACTION_MAP = {
     "Other_Faults": ("Human review — ambiguous category",         "blue"),
 }
 
+CLASS_COLORS = {
+    "Pastry":       "#e74c3c",
+    "Z_Scratch":    "#9b59b6",
+    "K_Scatch":     "#3498db",
+    "Stains":       "#f39c12",
+    "Dirtiness":    "#1abc9c",
+    "Bumps":        "#e67e22",
+    "Other_Faults": "#95a5a6",
+}
+
 # ── Session state init ────────────────────────────────────────────────────────
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 if "prediction_context" not in st.session_state:
     st.session_state.prediction_context = {}
+if "batch_results" not in st.session_state:
+    st.session_state.batch_results = None
+if "batch_X_scaled" not in st.session_state:
+    st.session_state.batch_X_scaled = None
+if "batch_shap_computed" not in st.session_state:
+    st.session_state.batch_shap_computed = False
+if "batch_shap_importance" not in st.session_state:
+    st.session_state.batch_shap_importance = None
+if "batch_shap_values" not in st.session_state:
+    st.session_state.batch_shap_values = None
+if "batch_X_sample" not in st.session_state:
+    st.session_state.batch_X_sample = None
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 st.sidebar.title("🏭 Steel Plates IDSS")
@@ -96,16 +125,116 @@ input_mode = st.sidebar.radio(
     label_visibility="collapsed",
 )
 
+def build_dashboard_summary(res_df):
+    """Build a text-rich dict describing every dashboard panel — fed to the chatbot."""
+    total = len(res_df)
+    n_high = int((res_df["Risk_Tier"] == "High").sum())
+    n_med  = int((res_df["Risk_Tier"] == "Medium").sum())
+    n_low  = int((res_df["Risk_Tier"] == "Low").sum())
+
+    class_counts = res_df["Predicted_Class"].value_counts()
+    conf_stats   = res_df.groupby("Predicted_Class")["Confidence"].agg(["mean", "min", "max"])
+    risk_cross   = (
+        res_df.groupby(["Predicted_Class", "Risk_Tier"])
+        .size().unstack(fill_value=0)
+    )
+
+    prob_cols = [c for c in res_df.columns if c.startswith("P(")]
+    heatmap_means = res_df.groupby("Predicted_Class")[prob_cols].mean() if prob_cols else None
+
+    defect_dist = {
+        cls: f"{cnt} plates ({cnt/total:.0%})"
+        for cls, cnt in class_counts.items()
+    }
+    conf_by_cls = {
+        cls: f"avg {row['mean']:.1%}, range {row['min']:.1%}–{row['max']:.1%}"
+        for cls, row in conf_stats.iterrows()
+    }
+    risk_by_cls = {}
+    for cls in risk_cross.index:
+        row = risk_cross.loc[cls]
+        risk_by_cls[cls] = (
+            f"High={int(row.get('High', 0))}, "
+            f"Medium={int(row.get('Medium', 0))}, "
+            f"Low={int(row.get('Low', 0))}"
+        )
+
+    heatmap_notes = []
+    if heatmap_means is not None:
+        for cls in heatmap_means.index:
+            row_probs = heatmap_means.loc[cls].sort_values(ascending=False)
+            self_col  = f"P({cls})"
+            self_val  = heatmap_means.loc[cls].get(self_col, 0)
+            # top 2 off-diagonal (confusion) entries
+            off_diag = row_probs.drop(labels=[self_col], errors="ignore").head(2)
+            confusion_str = ", ".join(
+                f"'{c[2:-1]}'={v:.2f}" for c, v in off_diag.items() if v > 0.02
+            )
+            heatmap_notes.append(
+                f"  - Predicted as {cls}: self-probability={self_val:.2f}"
+                + (f", confused with: {confusion_str}" if confusion_str else " (no significant confusion)")
+            )
+
+    return {
+        "kpi": (
+            f"Total={total}, High={n_high} ({n_high/total:.0%}), "
+            f"Medium={n_med} ({n_med/total:.0%}), Low={n_low} ({n_low/total:.0%}), "
+            f"Top defect={class_counts.index[0]} ({class_counts.iloc[0]} plates), "
+            f"Avg confidence={res_df['Confidence'].mean():.1%}"
+        ),
+        "defect_distribution": defect_dist,
+        "risk_tier_breakdown": {
+            "High":   f"{n_high} plates ({n_high/total:.0%})",
+            "Medium": f"{n_med} plates ({n_med/total:.0%})",
+            "Low":    f"{n_low} plates ({n_low/total:.0%})",
+        },
+        "confidence_by_class": conf_by_cls,
+        "highest_conf_class": conf_stats["mean"].idxmax(),
+        "lowest_conf_class":  conf_stats["mean"].idxmin(),
+        "risk_by_class": risk_by_cls,
+        "heatmap_notes": heatmap_notes,
+        "actionable_summary": [
+            {
+                "class": cls,
+                "count": int(class_counts.get(cls, 0)),
+                "pct": f"{class_counts.get(cls, 0)/total:.0%}",
+                "risk": risk_by_cls.get(cls, ""),
+                "avg_conf": f"{conf_stats.loc[cls, 'mean']:.1%}" if cls in conf_stats.index else "—",
+                "action": ACTION_MAP.get(cls, ("Manual review", ""))[0],
+            }
+            for cls in class_counts.index
+        ],
+    }
+
+
 def collect_manual_input():
     st.sidebar.markdown("---")
-    st.sidebar.markdown("**Sensor Readings** (use training-set medians as defaults)")
+    _rb, _rm = st.sidebar.columns(2)
+    with _rb:
+        if st.button("🎲 Randomize", use_container_width=True, help="Fill with realistic random sensor values"):
+            _lo, _hi = get_feature_ranges()
+            for _c in ALL_RAW_COLS:
+                if _c in ("TypeOfSteel_A300", "TypeOfSteel_A400"):
+                    st.session_state[f"inp_{_c}"] = int(np.random.randint(0, 2))
+                else:
+                    st.session_state[f"inp_{_c}"] = float(
+                        np.random.uniform(_lo.get(_c, 0), _hi.get(_c, 1))
+                    )
+            st.rerun()
+    with _rm:
+        if st.button("↺ Medians", use_container_width=True, help="Reset to training-set medians"):
+            for _c in ALL_RAW_COLS:
+                st.session_state.pop(f"inp_{_c}", None)
+            st.rerun()
+
+    st.sidebar.markdown("**Sensor Readings**")
     vals = {}
     for col in ALL_RAW_COLS:
         default = float(train_medians.get(col, 0.0))
-        if col in ["TypeOfSteel_A300", "TypeOfSteel_A400"]:
-            vals[col] = st.sidebar.selectbox(col, [0, 1], index=int(default))
+        if col in ("TypeOfSteel_A300", "TypeOfSteel_A400"):
+            vals[col] = st.sidebar.selectbox(col, [0, 1], index=int(default), key=f"inp_{col}")
         else:
-            vals[col] = st.sidebar.number_input(col, value=default, format="%.4f")
+            vals[col] = st.sidebar.number_input(col, value=default, format="%.4f", key=f"inp_{col}")
     return pd.DataFrame([vals])
 
 def run_prediction(raw_df):
@@ -142,7 +271,7 @@ st.markdown(
     "The system classifies the defect type, shows confidence, and explains the prediction."
 )
 
-tab_predict, tab_chat = st.tabs(["🔍 Prediction", "🤖 QC Assistant"])
+tab_predict, tab_dashboard, tab_chat = st.tabs(["🔍 Prediction", "📊 Analytics Dashboard", "🤖 QC Assistant"])
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 1 — PREDICTION
@@ -277,6 +406,14 @@ with tab_predict:
             for cls, col in zip(final_classes, proba.T):
                 results_df[f"P({cls})"] = col.round(4)
 
+            # Save to session state for Analytics Dashboard
+            st.session_state.batch_results = results_df
+            st.session_state.batch_X_scaled = X_scaled_df
+            st.session_state.batch_shap_computed = False
+            st.session_state.batch_shap_importance = None
+            st.session_state.batch_shap_values = None
+            st.session_state.batch_X_sample = None
+
             st.subheader("Predictions")
             st.dataframe(results_df, use_container_width=True)
 
@@ -292,13 +429,14 @@ with tab_predict:
             st.pyplot(fig_tier)
             plt.close(fig_tier)
 
-            # Save batch context for chatbot
+            # Save batch context for chatbot (includes full dashboard summary)
             st.session_state.prediction_context = {
-                "batch":          True,
-                "total_rows":     len(results_df),
-                "avg_confidence": results_df["Confidence"].mean(),
-                "tier_summary":   tier_counts.to_dict(),
-                "class_summary":  results_df["Predicted_Class"].value_counts().to_dict(),
+                "batch":             True,
+                "total_rows":        len(results_df),
+                "avg_confidence":    results_df["Confidence"].mean(),
+                "tier_summary":      tier_counts.to_dict(),
+                "class_summary":     results_df["Predicted_Class"].value_counts().to_dict(),
+                "dashboard_summary": build_dashboard_summary(results_df),
             }
             st.success("✅ Batch results saved — switch to **🤖 QC Assistant** tab to ask questions.")
 
@@ -312,7 +450,254 @@ with tab_predict:
             st.info("Upload a CSV file to get batch predictions.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB 2 — QC ASSISTANT CHATBOT
+# TAB 2 — ANALYTICS DASHBOARD
+# ══════════════════════════════════════════════════════════════════════════════
+with tab_dashboard:
+    st.subheader("📊 Batch Analytics Dashboard")
+
+    _res = st.session_state.batch_results
+    _Xs  = st.session_state.batch_X_scaled
+
+    if _res is None:
+        st.info("Upload a CSV in the **🔍 Prediction** tab to unlock the analytics dashboard.")
+    else:
+        total   = len(_res)
+        n_high  = int((_res["Risk_Tier"] == "High").sum())
+        n_med   = int((_res["Risk_Tier"] == "Medium").sum())
+        n_low   = int((_res["Risk_Tier"] == "Low").sum())
+        top_cls = _res["Predicted_Class"].mode()[0]
+        avg_cf  = _res["Confidence"].mean()
+
+        # ── KPI Row ──────────────────────────────────────────────────────────
+        k1, k2, k3, k4, k5 = st.columns(5)
+        k1.metric("📦 Total Plates", f"{total:,}")
+        k2.metric("🔴 High Risk",    f"{n_high}",  f"{n_high/total:.0%}")
+        k3.metric("🟠 Medium Risk",  f"{n_med}",   f"{n_med/total:.0%}")
+        k4.metric("🟢 Low Risk",     f"{n_low}",   f"{n_low/total:.0%}")
+        k5.metric("🏆 Top Defect",   top_cls,      f"Avg conf {avg_cf:.1%}")
+
+        st.markdown("---")
+
+        # ── Row 2: Defect distribution + Risk tiers ──────────────────────────
+        col_a, col_b = st.columns(2)
+
+        with col_a:
+            st.markdown("#### Defect Class Distribution")
+            _cc = _res["Predicted_Class"].value_counts().reset_index()
+            _cc.columns = ["Class", "Count"]
+            fig_donut = px.pie(
+                _cc, names="Class", values="Count",
+                color="Class", color_discrete_map=CLASS_COLORS,
+                hole=0.45,
+            )
+            fig_donut.update_traces(textposition="outside", textinfo="percent+label")
+            fig_donut.update_layout(
+                margin=dict(t=10, b=40, l=10, r=10),
+                showlegend=False, height=360,
+            )
+            st.plotly_chart(fig_donut, use_container_width=True)
+
+        with col_b:
+            st.markdown("#### Risk Tier Breakdown")
+            _tier_df = pd.DataFrame({
+                "Tier":  ["High", "Medium", "Low"],
+                "Count": [n_high, n_med, n_low],
+                "Pct":   [f"{n_high/total:.1%}", f"{n_med/total:.1%}", f"{n_low/total:.1%}"],
+            })
+            fig_risk = px.bar(
+                _tier_df, x="Count", y="Tier", orientation="h",
+                color="Tier",
+                color_discrete_map={"High": "#e74c3c", "Medium": "#e67e22", "Low": "#27ae60"},
+                text="Pct",
+            )
+            fig_risk.update_traces(textposition="outside")
+            fig_risk.update_layout(
+                showlegend=False, height=360,
+                margin=dict(t=10, b=10, l=10, r=60),
+                xaxis_title="Number of Plates", yaxis_title="",
+            )
+            st.plotly_chart(fig_risk, use_container_width=True)
+
+        st.markdown("---")
+
+        # ── Row 3: Confidence distribution by class ───────────────────────────
+        st.markdown("#### Prediction Confidence by Defect Class")
+        fig_box = px.box(
+            _res, x="Predicted_Class", y="Confidence",
+            color="Predicted_Class", color_discrete_map=CLASS_COLORS,
+            points="outliers",
+            category_orders={"Predicted_Class": list(CLASS_COLORS.keys())},
+        )
+        fig_box.update_layout(
+            showlegend=False, height=380,
+            margin=dict(t=10, b=10, l=10, r=10),
+            xaxis_title="", yaxis_title="Confidence",
+            yaxis_tickformat=".0%",
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+        )
+        fig_box.update_xaxes(showgrid=False)
+        fig_box.update_yaxes(showgrid=True, gridcolor="#e0e0e0")
+        st.plotly_chart(fig_box, use_container_width=True)
+
+        st.markdown("---")
+
+        # ── Row 4: Probability heatmap + SHAP global importance ───────────────
+        col_c, col_d = st.columns(2)
+
+        with col_c:
+            st.markdown("#### Avg Class Probability per Predicted Defect")
+            _prob_cols = [c for c in _res.columns if c.startswith("P(")]
+            _cls_labels = [c[2:-1] for c in _prob_cols]
+            _heat = _res.groupby("Predicted_Class")[_prob_cols].mean()
+            _heat.columns = _cls_labels
+            _heat = _heat.reindex(
+                [c for c in CLASS_COLORS if c in _heat.index]
+            )
+            fig_heat = px.imshow(
+                _heat, color_continuous_scale="Blues",
+                aspect="auto", text_auto=".2f",
+                zmin=0, zmax=1,
+            )
+            fig_heat.update_layout(
+                height=380, margin=dict(t=10, b=10, l=10, r=10),
+                xaxis_title="Class Probability", yaxis_title="Predicted As",
+                coloraxis_colorbar=dict(title="Prob"),
+            )
+            st.plotly_chart(fig_heat, use_container_width=True)
+
+        with col_d:
+            st.markdown("#### SHAP Global Feature Importance (batch sample)")
+            if not st.session_state.batch_shap_computed:
+                with st.spinner("Computing SHAP values for batch sample…"):
+                    try:
+                        _n_sample = min(60, len(_Xs))
+                        _X_samp = _Xs.iloc[:_n_sample]
+                        _sv = explainer.shap_values(_X_samp)
+                        if isinstance(_sv, np.ndarray) and _sv.ndim == 3:
+                            _mean_abs = np.abs(_sv).mean(axis=(0, 2))
+                        elif isinstance(_sv, list):
+                            _mean_abs = np.abs(np.array(_sv)).mean(axis=(0, 1))
+                        else:
+                            _mean_abs = np.abs(_sv).mean(axis=0)
+                        _imp_df = pd.DataFrame({
+                            "Feature":    feat_names,
+                            "Importance": _mean_abs,
+                        }).sort_values("Importance", ascending=False)
+                        st.session_state.batch_shap_importance = _imp_df
+                        st.session_state.batch_shap_values = _sv
+                        st.session_state.batch_X_sample = _X_samp
+                        _top5 = _imp_df.head(5).apply(
+                            lambda r: {"name": r["Feature"], "importance": round(r["Importance"], 4)},
+                            axis=1,
+                        ).tolist()
+                        if "dashboard_summary" in st.session_state.prediction_context:
+                            st.session_state.prediction_context["dashboard_summary"]["shap_top_features"] = _top5
+                        st.session_state.batch_shap_computed = True
+                    except Exception as _e:
+                        st.warning(f"SHAP computation failed: {_e}")
+                        st.session_state.batch_shap_computed = True
+
+            if st.session_state.batch_shap_importance is not None:
+                _plot_imp = st.session_state.batch_shap_importance.sort_values("Importance").tail(15)
+                fig_imp = px.bar(
+                    _plot_imp, x="Importance", y="Feature", orientation="h",
+                    color="Importance", color_continuous_scale="Blues",
+                )
+                fig_imp.update_layout(
+                    showlegend=False, height=380,
+                    margin=dict(t=10, b=10, l=10, r=10),
+                    xaxis_title="Mean |SHAP Value|", yaxis_title="",
+                    coloraxis_showscale=False,
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                )
+                fig_imp.update_xaxes(showgrid=True, gridcolor="#e0e0e0")
+                st.plotly_chart(fig_imp, use_container_width=True)
+
+        # ── SHAP Beeswarm (full-width, shown once SHAP is ready) ─────────────
+        if st.session_state.batch_shap_values is not None:
+            st.markdown("---")
+            st.markdown("#### SHAP Beeswarm — Feature Impact Across Batch")
+            st.caption(
+                "Each dot = one plate. Position = SHAP impact on prediction. "
+                "Color = feature value (red=high, blue=low). "
+                "Width of spread shows how much a feature varies across plates."
+            )
+            try:
+                _sv_bee  = st.session_state.batch_shap_values
+                _Xb      = st.session_state.batch_X_sample
+
+                # Convert 3-D array → list so shap handles multiclass correctly
+                if isinstance(_sv_bee, np.ndarray) and _sv_bee.ndim == 3:
+                    _sv_bee = [_sv_bee[:, :, k] for k in range(_sv_bee.shape[2])]
+
+                fig_bee, _ = plt.subplots(figsize=(10, 7))
+                shap.summary_plot(
+                    _sv_bee, _Xb,
+                    feature_names=feat_names,
+                    class_names=list(rf.classes_),
+                    max_display=15,
+                    show=False,
+                )
+                plt.tight_layout()
+                st.pyplot(fig_bee)
+                plt.close(fig_bee)
+            except Exception as _e:
+                st.warning(f"Beeswarm plot failed: {_e}")
+
+        st.markdown("---")
+
+        # ── Row 5: Defect × Risk stacked bar ─────────────────────────────────
+        st.markdown("#### Defect Class × Risk Tier")
+        _cross = _res.groupby(["Predicted_Class", "Risk_Tier"]).size().reset_index(name="Count")
+        fig_stack = px.bar(
+            _cross, x="Predicted_Class", y="Count", color="Risk_Tier",
+            color_discrete_map={"High": "#e74c3c", "Medium": "#e67e22", "Low": "#27ae60"},
+            barmode="stack",
+            category_orders={
+                "Predicted_Class": list(CLASS_COLORS.keys()),
+                "Risk_Tier": ["High", "Medium", "Low"],
+            },
+        )
+        fig_stack.update_layout(
+            height=360, margin=dict(t=10, b=10, l=10, r=10),
+            xaxis_title="Defect Class", yaxis_title="Plate Count",
+            legend_title="Risk Tier",
+            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+        )
+        fig_stack.update_yaxes(showgrid=True, gridcolor="#e0e0e0")
+        st.plotly_chart(fig_stack, use_container_width=True)
+
+        st.markdown("---")
+
+        # ── Row 6: Actionable summary table ───────────────────────────────────
+        st.markdown("#### Actionable Summary by Defect Class")
+        _summ = _res.groupby("Predicted_Class").agg(
+            Count=("Predicted_Class", "count"),
+            High=("Risk_Tier", lambda x: (x == "High").sum()),
+            Medium=("Risk_Tier", lambda x: (x == "Medium").sum()),
+            Low=("Risk_Tier", lambda x: (x == "Low").sum()),
+            Avg_Conf=("Confidence", "mean"),
+        ).reset_index()
+        _summ["% of Total"] = (_summ["Count"] / total * 100).round(1).astype(str) + "%"
+        _summ["Avg Confidence"] = _summ["Avg_Conf"].map("{:.1%}".format)
+        _summ["Action"] = _summ["Predicted_Class"].map(
+            lambda c: ACTION_MAP.get(c, ("Manual review", ""))[0]
+        )
+        _summ = _summ.rename(columns={
+            "Predicted_Class": "Defect Class",
+            "High": "🔴 High",
+            "Medium": "🟠 Medium",
+            "Low": "🟢 Low",
+        }).sort_values("Count", ascending=False).drop(columns=["Avg_Conf"])
+        st.dataframe(
+            _summ[["Defect Class", "Count", "% of Total", "🔴 High", "🟠 Medium", "🟢 Low", "Avg Confidence", "Action"]],
+            use_container_width=True, hide_index=True,
+        )
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB 3 — QC ASSISTANT CHATBOT
 # ══════════════════════════════════════════════════════════════════════════════
 with tab_chat:
     st.subheader("🤖 QC Assistant — Ask me about any prediction")
@@ -359,9 +744,20 @@ with tab_chat:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    pending    = st.session_state.pop("pending_question", None)
-    user_input = st.chat_input("Ask about the prediction, defect types, or QC procedures...")
-    question   = pending or user_input
+    pending = st.session_state.pop("pending_question", None)
+
+    with st.form("chat_form", clear_on_submit=True):
+        _ci, _cb = st.columns([5, 1])
+        with _ci:
+            _typed = st.text_input(
+                "message",
+                placeholder="Ask about the prediction, defect types, or QC procedures…",
+                label_visibility="collapsed",
+            )
+        with _cb:
+            _send = st.form_submit_button("Send ➤", use_container_width=True)
+
+    question = pending or (_typed.strip() if _send and _typed.strip() else None)
 
     if question:
         with st.chat_message("user"):

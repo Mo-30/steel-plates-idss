@@ -133,7 +133,10 @@ GROQ_API_KEY=your_key_here
 ## What's Left / Open for Contribution
 
 All core deliverables are done. Possible extensions:
+- for the manual entry for predection i want to add a button to add random numbers in a certain realistic range so it is easier to enter data and test
+- Improve accuarcies of the evaluations. retrain if needed -> if dtaset changed for better accuracy
 - Improve `Other_Faults` AUC (0.89) — sub-type analysis by thickness quartile
 - Add data drift monitoring dashboard
 - Retrain pipeline with new labelled data
 - Add more chatbot context (batch-mode SHAP summaries)
+- work more on the XAI analysis and add explainable dashbords -> if user added a batch of data steel-plates fault there should be a dashboard shows different number i want something like powerbi dashboards to be good looking and have differnt analysis. 

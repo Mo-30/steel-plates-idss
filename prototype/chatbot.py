@@ -46,6 +46,18 @@ Key features that drive predictions:
 - Luminosity_Range: scratch sharpness vs stain diffuseness
 - Steel_Plate_Thickness: plate grade and rolling process
 
+Analytics Dashboard panels (visible when a batch CSV is uploaded):
+1. KPI Cards — top row: total plates, High/Medium/Low risk counts with %, top defect class, avg confidence.
+2. Defect Class Distribution (donut chart) — percentage breakdown of which defect types were predicted across the batch.
+3. Risk Tier Breakdown (horizontal bars) — Red=High, Orange=Medium, Green=Low; shows how many plates fall in each risk tier.
+4. Confidence by Defect Class (box plot) — distribution of the model's top-class probability per defect. A higher box median = the model is more certain about that defect type. Wider spread = more variable confidence.
+5. Avg Class Probability Heatmap — rows = what the model predicted, columns = probability for every class. The diagonal should be bright (high self-probability). Off-diagonal brightness reveals which classes the model confuses.
+6. SHAP Global Feature Importance (bar chart) — mean |SHAP value| across a sample of the batch; shows which sensor readings drive predictions most overall.
+7. Defect × Risk Stacked Bar — for each defect class, how many plates are High/Medium/Low risk; reveals which defect types are most reliably or unreliably detected.
+8. Actionable Summary Table — per-defect row with count, % of total, risk tier breakdown, avg confidence, and recommended factory action.
+
+When asked about any dashboard panel, explain what the panel shows conceptually AND reference the actual numbers from the batch context provided.
+
 Business recommendations:
 1. Auto pass/reject on High-tier plates (>=0.70 confidence)
 2. Monthly calibration of Length_of_Conveyer sensors
@@ -88,6 +100,43 @@ def build_context_message(prediction_context: dict) -> str:
         lines.append("- All class probabilities:")
         for cls, prob in prediction_context["all_probs"].items():
             lines.append(f"    {cls}: {prob:.3f}")
+
+    # Full analytics dashboard context (batch mode)
+    ds = prediction_context.get("dashboard_summary") if prediction_context.get("batch") else None
+    if ds:
+        lines.append("\n=== Analytics Dashboard — current batch data ===")
+        if ds.get("kpi"):
+            lines.append(f"[KPI Cards] {ds['kpi']}")
+        if ds.get("defect_distribution"):
+            lines.append("[Defect Donut] Distribution across batch:")
+            for cls, info in ds["defect_distribution"].items():
+                lines.append(f"    {cls}: {info}")
+        if ds.get("risk_tier_breakdown"):
+            lines.append("[Risk Tier Bars]")
+            for tier, info in ds["risk_tier_breakdown"].items():
+                lines.append(f"    {tier}: {info}")
+        if ds.get("confidence_by_class"):
+            lines.append(f"[Confidence Box Plot] (highest confidence: {ds.get('highest_conf_class')}, lowest: {ds.get('lowest_conf_class')})")
+            for cls, info in ds["confidence_by_class"].items():
+                lines.append(f"    {cls}: {info}")
+        if ds.get("heatmap_notes"):
+            lines.append("[Probability Heatmap] Avg probabilities per predicted class:")
+            lines.extend(ds["heatmap_notes"])
+        if ds.get("shap_top_features"):
+            lines.append("[SHAP Feature Importance] Top drivers across batch:")
+            for feat in ds["shap_top_features"]:
+                lines.append(f"    {feat['name']}: mean |SHAP|={feat['importance']:.4f}")
+        if ds.get("risk_by_class"):
+            lines.append("[Defect × Risk Stacked Bar]")
+            for cls, info in ds["risk_by_class"].items():
+                lines.append(f"    {cls}: {info}")
+        if ds.get("actionable_summary"):
+            lines.append("[Actionable Summary Table]")
+            for row in ds["actionable_summary"]:
+                lines.append(
+                    f"    {row['class']}: {row['count']} plates ({row['pct']}), "
+                    f"risk={row['risk']}, avg_conf={row['avg_conf']}, action={row['action']}"
+                )
 
     return "\n".join(lines)
 
