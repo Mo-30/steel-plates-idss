@@ -25,11 +25,14 @@
 
   body {
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    background: var(--bg);
+    background: #000;
     color: var(--text);
     overflow: hidden;
     height: 100vh;
     width: 100vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 
   /* ── Progress bar ── */
@@ -70,8 +73,15 @@
   #btn-prev { left: 28px; }
   #btn-next { left: 110px; }
 
-  /* ── Slides container ── */
-  #slides { width: 100vw; height: 100vh; }
+  /* ── Slides container — constrained to 16:9 ── */
+  #slides {
+    width: min(100vw, calc(100vh * 16 / 9));
+    height: min(100vh, calc(100vw * 9 / 16));
+    position: relative;
+    background: var(--bg);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
 
   .slide {
     position: absolute;
@@ -108,6 +118,38 @@
   .slide-conclusion { background: radial-gradient(ellipse at 50% 40%, #071a1a 0%, #07091a 70%); }
   .slide-ethics   { background: radial-gradient(ellipse at 40% 60%, #1a0520 0%, #07091a 70%); }
   .slide-thanks   { background: radial-gradient(ellipse at 50% 50%, #0d1a2e 0%, #07091a 65%); }
+  .slide-dash     { background: radial-gradient(ellipse at 45% 55%, #050d1f 0%, #07091a 70%); }
+  .slide-chatbot  { background: radial-gradient(ellipse at 35% 60%, #06101e 0%, #07091a 70%); }
+
+  /* ── Chat bubbles ── */
+  .chat-bubble-user {
+    background: rgba(129,140,248,.18);
+    border: 1px solid rgba(129,140,248,.3);
+    border-radius: 14px 14px 4px 14px;
+    padding: 9px 13px;
+    max-width: 82%;
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .chat-bubble-ai {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 14px 14px 14px 4px;
+    padding: 9px 13px;
+    max-width: 88%;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .chat-avatar {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
 
   /* ── Typography ── */
   .slide-label {
@@ -922,48 +964,393 @@
   </div>
 
   <!-- ══════════════════════════════════════════════════════
-       SLIDE 11 — ANALYTICS DASHBOARD
+       SLIDE 11 — DASHBOARD: DEFECT DISTRIBUTION
   ═══════════════════════════════════════════════════════════ -->
-  <div class="slide slide-phase5b" id="s11">
-    <div class="full-w" style="max-width:1160px;">
-      <div class="phase-tag">📊 Phase 5 — Analytics Dashboard</div>
-      <h2 style="margin-bottom:16px;">Batch Analytics — PowerBI-style Visualisations</h2>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
-        <div class="dash-img">
-          <img src="../Dashborad Analytics/newplot.png" alt="Defect Distribution">
-          <div class="dash-caption">Defect Class Distribution (Donut)</div>
+  <div class="slide slide-dash" id="s11">
+    <div class="full-w" style="max-width:1100px;">
+      <div class="phase-tag">📊 Phase 5 — Analytics Dashboard · Panel 1 / 6</div>
+      <h2 style="margin-bottom:16px;">Defect Class Distribution</h2>
+      <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:24px;align-items:center;">
+        <div class="dash-img"><img src="../Dashborad Analytics/newplot.png" alt="Defect Distribution" style="width:100%;display:block;"></div>
+        <div style="display:flex;flex-direction:column;gap:13px;">
+          <div class="card card-cyan">
+            <h3 style="margin-bottom:5px;color:var(--accent2);">What this shows</h3>
+            <p>Percentage breakdown of all 100 predicted defect classes — which defect types dominate this production batch.</p>
+          </div>
+          <div class="card card-accent">
+            <h3 style="margin-bottom:7px;">Key Insights</h3>
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:5px;">
+              <li><p>🔴 <strong>Other_Faults 26%</strong> — model's weakest class; mandatory human review for all 26 plates</p></li>
+              <li><p>🟠 <strong>Bumps 20% + Pastry 18%</strong> — 38 plates need Reject / Conditional action</p></li>
+              <li><p>⚡ <strong>K_Scratch + Z_Scratch = 26%</strong> — high-confidence Reject; automation-ready</p></li>
+              <li><p>✅ <strong>Stains + Dirtiness = 10%</strong> — Hold class; cleaning may recover 10 plates</p></li>
+            </ul>
+          </div>
+          <div class="card card-gold">
+            <h3 style="margin-bottom:4px;font-size:13px;">Factory Action</h3>
+            <p style="font-size:12px;"><strong>44% of batch</strong> (Pastry + Z_Scratch + K_Scratch) → scrap line. <strong>26%</strong> → mandatory human review regardless of confidence tier.</p>
+          </div>
         </div>
-        <div class="dash-img">
-          <img src="../Dashborad Analytics/newplot (1).png" alt="Risk Tier Breakdown">
-          <div class="dash-caption">Risk Tier Breakdown</div>
-        </div>
-        <div class="dash-img">
-          <img src="../Dashborad Analytics/newplot (3).png" alt="Probability Heatmap">
-          <div class="dash-caption">Avg Class Probability Heatmap</div>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:12px;">
-        <div class="dash-img">
-          <img src="../Dashborad Analytics/newplot (2).png" alt="Confidence Box Plot">
-          <div class="dash-caption">Confidence Distribution by Defect Class</div>
-        </div>
-        <div class="dash-img">
-          <img src="../Dashborad Analytics/newplot (4).png" alt="SHAP Importance">
-          <div class="dash-caption">SHAP Global Feature Importance (batch)</div>
-        </div>
-      </div>
-      <div class="card" style="margin-top:10px;padding:10px 16px;">
-        <p style="font-size:12px;text-align:center;">
-          Dashboard includes: <strong>KPI cards · Defect donut · Risk tier bars · Confidence box plots · Probability heatmap · SHAP beeswarm · Defect×Risk stacked bars · Actionable summary table</strong> — all charts are interactive (Plotly) and the AI chatbot can explain every panel.
-        </p>
       </div>
     </div>
   </div>
 
   <!-- ══════════════════════════════════════════════════════
-       SLIDE 12 — LIMITATIONS, ETHICS & FUTURE WORK
+       SLIDE 12 — DASHBOARD: RISK TIER BREAKDOWN
   ═══════════════════════════════════════════════════════════ -->
-  <div class="slide slide-ethics" id="s12" style="padding:30px 64px 30px;justify-content:flex-start;">
+  <div class="slide slide-dash" id="s12">
+    <div class="full-w" style="max-width:1100px;">
+      <div class="phase-tag">📊 Phase 5 — Analytics Dashboard · Panel 2 / 6</div>
+      <h2 style="margin-bottom:16px;">Risk Tier Breakdown</h2>
+      <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:24px;align-items:center;">
+        <div class="dash-img"><img src="../Dashborad Analytics/newplot (1).png" alt="Risk Tier Breakdown" style="width:100%;display:block;"></div>
+        <div style="display:flex;flex-direction:column;gap:13px;">
+          <div class="card card-cyan">
+            <h3 style="margin-bottom:5px;color:var(--accent2);">What this shows</h3>
+            <p>Count of plates in each confidence tier. Red = High (≥70%), Orange = Medium (40–70%), Green = Low (&lt;40%). Drives the automation routing decision for every plate.</p>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:7px;">
+            <div class="risk-row">
+              <div class="risk-color" style="background:var(--red);box-shadow:0 0 8px var(--red);"></div>
+              <div class="risk-label" style="color:var(--red);">High</div>
+              <div class="risk-detail"><strong>71 plates</strong> → Auto pass/reject</div>
+              <div class="risk-stat" style="color:var(--red);">71%</div>
+            </div>
+            <div class="risk-row">
+              <div class="risk-color" style="background:var(--orange);box-shadow:0 0 8px var(--orange);"></div>
+              <div class="risk-label" style="color:var(--orange);">Medium</div>
+              <div class="risk-detail"><strong>21 plates</strong> → Human review (~60s each)</div>
+              <div class="risk-stat" style="color:var(--orange);">21%</div>
+            </div>
+            <div class="risk-row">
+              <div class="risk-color" style="background:var(--green);box-shadow:0 0 8px var(--green);"></div>
+              <div class="risk-label" style="color:var(--green);">Low</div>
+              <div class="risk-detail"><strong>8 plates</strong> → Escalate to senior QC</div>
+              <div class="risk-stat" style="color:var(--green);">8%</div>
+            </div>
+          </div>
+          <div class="card card-gold">
+            <h3 style="margin-bottom:4px;font-size:13px;">Automation Potential</h3>
+            <p style="font-size:12px;"><strong>71% handled without operator intervention</strong> — consistent with the model's 65.8% training coverage at 88.3% High-tier accuracy.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SLIDE 13 — DASHBOARD: CONFIDENCE BOX PLOT
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="slide slide-dash" id="s13">
+    <div class="full-w" style="max-width:1100px;">
+      <div class="phase-tag">📊 Phase 5 — Analytics Dashboard · Panel 3 / 6</div>
+      <h2 style="margin-bottom:16px;">Confidence Distribution by Defect Class</h2>
+      <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:24px;align-items:center;">
+        <div class="dash-img"><img src="../Dashborad Analytics/newplot (2).png" alt="Confidence Box Plot" style="width:100%;display:block;"></div>
+        <div style="display:flex;flex-direction:column;gap:13px;">
+          <div class="card card-cyan">
+            <h3 style="margin-bottom:5px;color:var(--accent2);">What this shows</h3>
+            <p>Box-and-whisker of the model's top-class probability per defect type. <strong>Higher median = more certain</strong>. Wider box = more variable confidence within that class.</p>
+          </div>
+          <div class="card card-accent">
+            <h3 style="margin-bottom:7px;">Key Insights</h3>
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:5px;">
+              <li><p>⚡ <strong>K_Scratch 96.2%</strong> — tightest box; near-certain every time → automation candidate</p></li>
+              <li><p>⚡ <strong>Z_Scratch 94.2%</strong> — second most reliable; both scratch classes are safe to automate</p></li>
+              <li><p>⚠️ <strong>Other_Faults 67.1%</strong> — lowest median, widest spread; high ambiguity</p></li>
+              <li><p>⚠️ <strong>Bumps 67.3%</strong> — similar spread; tolerance check required every prediction</p></li>
+            </ul>
+          </div>
+          <div class="card card-red">
+            <h3 style="margin-bottom:4px;font-size:13px;">Decision Rule</h3>
+            <p style="font-size:12px;">Classes with median &gt; 0.90 and tight IQR → <strong>candidates for full automation</strong>. Classes with median &lt; 0.75 → <strong>mandatory human review</strong> on every plate.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SLIDE 14 — DASHBOARD: PROBABILITY HEATMAP
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="slide slide-dash" id="s14">
+    <div class="full-w" style="max-width:1100px;">
+      <div class="phase-tag">📊 Phase 5 — Analytics Dashboard · Panel 4 / 6</div>
+      <h2 style="margin-bottom:16px;">Avg Class Probability Heatmap</h2>
+      <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:24px;align-items:center;">
+        <div class="dash-img"><img src="../Dashborad Analytics/newplot (3).png" alt="Probability Heatmap" style="width:100%;display:block;"></div>
+        <div style="display:flex;flex-direction:column;gap:13px;">
+          <div class="card card-cyan">
+            <h3 style="margin-bottom:5px;color:var(--accent2);">What this shows</h3>
+            <p>Rows = predicted class · Columns = probability for every class. <strong>Bright diagonal = high self-confidence.</strong> Off-diagonal bright cells reveal which classes the model confuses with each other.</p>
+          </div>
+          <div class="card card-accent">
+            <h3 style="margin-bottom:7px;">Key Insights</h3>
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:5px;">
+              <li><p>✅ <strong>K_Scratch &amp; Dirtiness</strong> — bright diagonal only; near-zero off-diagonal confusion</p></li>
+              <li><p>🔴 <strong>Bumps → Other_Faults = 0.17</strong> — top confusion pair; similar irregular surface patterns</p></li>
+              <li><p>🟠 <strong>Pastry → Other_Faults = 0.12</strong> — secondary confusion; overlapping edge features</p></li>
+              <li><p>💡 All scratch &amp; dirtiness off-diagonal values &lt; 0.05</p></li>
+            </ul>
+          </div>
+          <div class="card card-gold">
+            <h3 style="margin-bottom:4px;font-size:13px;">Practical Use</h3>
+            <p style="font-size:12px;">When Bumps is predicted at &lt;75% confidence, <strong>also inspect Other_Faults probability</strong>. A combined Bumps + Other_Faults probability &gt; 0.85 confirms one of these two classes.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SLIDE 15 — DASHBOARD: SHAP FEATURE IMPORTANCE
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="slide slide-dash" id="s15">
+    <div class="full-w" style="max-width:1100px;">
+      <div class="phase-tag">📊 Phase 5 — Analytics Dashboard · Panel 5 / 6</div>
+      <h2 style="margin-bottom:16px;">SHAP Global Feature Importance (Batch)</h2>
+      <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:24px;align-items:center;">
+        <div class="dash-img"><img src="../Dashborad Analytics/newplot (4).png" alt="SHAP Importance" style="width:100%;display:block;"></div>
+        <div style="display:flex;flex-direction:column;gap:13px;">
+          <div class="card card-cyan">
+            <h3 style="margin-bottom:5px;color:var(--accent2);">What this shows</h3>
+            <p>Mean |SHAP| value per feature across a sample of the batch — which sensor readings drove predictions the most. Computed on the Random Forest base estimator of the stacking model.</p>
+          </div>
+          <div class="card card-accent">
+            <h3 style="margin-bottom:7px;">Top Drivers (this batch)</h3>
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:5px;">
+              <li><p>🥇 <strong>Length_of_Conveyer</strong> — process-stage indicator; #1 driver across all 7 defect classes</p></li>
+              <li><p>🥈 <strong>TypeOfSteel_A400</strong> — steel grade determines rolling process and typical defect profile</p></li>
+              <li><p>🥉 <strong>Orientation_Index</strong> — separates directional (scratches) from non-directional defects</p></li>
+              <li><p>📐 <strong>Aspect_Ratio (engineered)</strong> — elongation distinguishes scratch classes from bumps/stains</p></li>
+            </ul>
+          </div>
+          <div class="card card-red">
+            <h3 style="margin-bottom:4px;font-size:13px;">⚠ Maintenance Priority</h3>
+            <p style="font-size:12px;"><strong>Length_of_Conveyer is the #1 SHAP driver.</strong> Sensor drift here degrades all 7 class predictions simultaneously — monthly calibration is critical.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SLIDE 16 — DASHBOARD: DEFECT × RISK STACKED BAR
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="slide slide-dash" id="s16">
+    <div class="full-w" style="max-width:1100px;">
+      <div class="phase-tag">📊 Phase 5 — Analytics Dashboard · Panel 6 / 6</div>
+      <h2 style="margin-bottom:16px;">Defect × Risk Tier Stacked Bar</h2>
+      <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:24px;align-items:center;">
+        <div class="dash-img"><img src="../Dashborad Analytics/newplot (5).png" alt="Defect x Risk Stacked Bar" style="width:100%;display:block;"></div>
+        <div style="display:flex;flex-direction:column;gap:13px;">
+          <div class="card card-cyan">
+            <h3 style="margin-bottom:5px;color:var(--accent2);">What this shows</h3>
+            <p>For each predicted defect class: plate count split into High (red), Medium (orange), and Low (green) risk tiers. Reveals which classes are <strong>reliably detected</strong> vs. which need the most human oversight.</p>
+          </div>
+          <div class="card card-accent">
+            <h3 style="margin-bottom:7px;">Key Insights</h3>
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:5px;">
+              <li><p>⚡ <strong>K_Scratch: 15/15 High</strong> — 100% automation coverage for this class in this batch</p></li>
+              <li><p>⚡ <strong>Dirtiness: 4/4 High</strong> — all plates in the automated Hold queue</p></li>
+              <li><p>🔴 <strong>Bumps: 4 Low-tier plates</strong> — highest Low count; escalate all 4 to senior QC</p></li>
+              <li><p>🟠 <strong>Other_Faults: 10 Medium</strong> — largest Medium group; most operator review minutes required</p></li>
+            </ul>
+          </div>
+          <div class="card card-gold">
+            <h3 style="margin-bottom:4px;font-size:13px;">Actionable Summary</h3>
+            <p style="font-size:12px;">Classes with <strong>all-High bars</strong> (K_Scratch, Dirtiness) → fully automated. Classes with significant Medium/Low bars (Bumps, Other_Faults, Pastry) → proportional human oversight required.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SLIDE 17 — QC AI CHATBOT
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="slide slide-chatbot" id="s17">
+    <div class="full-w" style="max-width:1100px;">
+      <div class="phase-tag">🤖 Phase 5 — QC AI Assistant</div>
+      <div style="display:grid;grid-template-columns:1fr 1.7fr;gap:22px;align-items:start;">
+
+        <!-- LEFT: system overview -->
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div>
+            <h2 style="margin-bottom:4px;font-size:clamp(18px,2vw,30px);">QC AI Chatbot</h2>
+            <p style="font-size:12px;color:var(--muted);">Powered by Groq API · LLaMA 3.3 70B Versatile</p>
+          </div>
+          <div class="card card-purple">
+            <h3 style="margin-bottom:8px;color:var(--purple);font-size:13px;">🧠 What the AI Knows</h3>
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:5px;">
+              <li><p style="font-size:11.5px;">📋 All 7 defect types, factory actions &amp; risk thresholds</p></li>
+              <li><p style="font-size:11.5px;">📊 Full batch dashboard — all 8 chart panels with exact numbers</p></li>
+              <li><p style="font-size:11.5px;">🌊 Per-prediction SHAP values &amp; feature attributions</p></li>
+              <li><p style="font-size:11.5px;">🤖 Model AUC per class, confusion patterns, architecture</p></li>
+              <li><p style="font-size:11.5px;">💡 5 business recommendations with statistical evidence</p></li>
+            </ul>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div class="metric-big card" style="padding:11px 8px;">
+              <div class="val" style="font-size:20px;">70B</div>
+              <div class="lbl">Model Params</div>
+            </div>
+            <div class="metric-big card" style="padding:11px 8px;">
+              <div class="val" style="font-size:20px;">8</div>
+              <div class="lbl">Dashboard Panels</div>
+            </div>
+          </div>
+          <div class="card card-green" style="padding:11px 14px;">
+            <h3 style="margin-bottom:5px;color:var(--green);font-size:12px;">Context Injection</h3>
+            <p style="font-size:11px;">At CSV upload, the full batch summary is automatically injected into the chatbot's system prompt — enabling data-grounded answers without copy-paste.</p>
+          </div>
+        </div>
+
+        <!-- RIGHT: chat window -->
+        <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:16px;overflow:hidden;">
+          <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:rgba(129,140,248,.07);">
+            <span style="font-size:22px;">🤖</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--text);">QC Assistant</div>
+              <div style="font-size:10px;color:var(--green);">● Online · Batch context loaded — 100 plates, 8 panels</div>
+            </div>
+          </div>
+          <div style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+
+            <!-- User Q1 -->
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+              <div style="font-size:10px;color:var(--muted);padding-right:2px;">Operator · 09:42</div>
+              <div class="chat-bubble-user">Looking at the probability heatmap — which classes is the model most confused between in this batch?</div>
+            </div>
+
+            <!-- AI A1 -->
+            <div style="display:flex;gap:8px;align-items:flex-start;">
+              <div class="chat-avatar" style="background:rgba(129,140,248,.15);border:1px solid rgba(129,140,248,.3);">🤖</div>
+              <div style="display:flex;flex-direction:column;gap:3px;flex:1;">
+                <div style="font-size:10px;color:var(--muted);">QC Assistant · 09:42</div>
+                <div class="chat-bubble-ai">The strongest off-diagonal confusion is <strong style="color:var(--text);">Bumps → Other_Faults (avg probability 0.17)</strong> and <strong style="color:var(--text);">Pastry → Other_Faults (0.12)</strong>. Both classes share overlapping irregular-surface patterns — high Pixels_Areas and moderate Edge_Strength — making them hard to distinguish at the boundary.<br><br>K_Scratch and Dirtiness show bright diagonals with off-diagonal values &lt;0.05 — those predictions are clean and safe to automate.</div>
+              </div>
+            </div>
+
+            <!-- User Q2 -->
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+              <div style="font-size:10px;color:var(--muted);padding-right:2px;">Operator · 09:44</div>
+              <div class="chat-bubble-user">K_Scratch confidence is 96.2% — why is it so much higher than Other_Faults at 67%?</div>
+            </div>
+
+            <!-- AI A2 -->
+            <div style="display:flex;gap:8px;align-items:flex-start;">
+              <div class="chat-avatar" style="background:rgba(129,140,248,.15);border:1px solid rgba(129,140,248,.3);">🤖</div>
+              <div style="display:flex;flex-direction:column;gap:3px;flex:1;">
+                <div style="font-size:10px;color:var(--muted);">QC Assistant · 09:44</div>
+                <div class="chat-bubble-ai">K_Scratch creates distinctive cross-direction scratch patterns with uniquely high <strong style="color:var(--text);">Orientation_Index</strong> and sharp <strong style="color:var(--text);">Luminosity_Range</strong> values — the Random Forest separates it with very low tree entropy. Other_Faults is a catch-all by definition: any plate that doesn't clearly match a specific pattern ends up there, spreading probability mass across multiple classes and lowering peak confidence.</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SLIDE 18 — QC AI CHATBOT (CONTINUED)
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="slide slide-chatbot" id="s18">
+    <div class="full-w" style="max-width:1100px;">
+      <div class="phase-tag">🤖 Phase 5 — QC AI Assistant · Batch Decision Support</div>
+      <h2 style="margin-bottom:14px;">AI-Guided Batch Decisions</h2>
+      <div style="display:grid;grid-template-columns:1.7fr 1fr;gap:22px;align-items:start;">
+
+        <!-- LEFT: chat window -->
+        <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:16px;overflow:hidden;">
+          <div style="padding:9px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:rgba(129,140,248,.07);">
+            <span style="font-size:18px;">🤖</span>
+            <div style="font-size:12px;font-weight:700;color:var(--text);">QC Assistant · 100-plate batch · May 2026</div>
+          </div>
+          <div style="padding:14px;display:flex;flex-direction:column;gap:10px;">
+
+            <!-- User Q3 -->
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+              <div style="font-size:10px;color:var(--muted);">Operator · 09:46</div>
+              <div class="chat-bubble-user">We have 26 Other_Faults plates at 67% avg confidence — 15 High, 10 Medium, 1 Low. What's the recommended action?</div>
+            </div>
+            <!-- AI A3 -->
+            <div style="display:flex;gap:8px;align-items:flex-start;">
+              <div class="chat-avatar" style="background:rgba(129,140,248,.15);border:1px solid rgba(129,140,248,.3);">🤖</div>
+              <div style="display:flex;flex-direction:column;gap:3px;flex:1;">
+                <div style="font-size:10px;color:var(--muted);">QC Assistant · 09:46</div>
+                <div class="chat-bubble-ai"><strong style="color:var(--red);">All 26 require human sign-off</strong> — Other_Faults is safety-net routed regardless of confidence tier (AUC 0.890, lowest class; confused with Bumps 0.17 and Pastry 0.12). For the 10 Medium-tier plates: ~60s human review each. The 1 Low-tier plate (&lt;40% confidence) → escalate to senior QC immediately. Do not apply automated pass/reject to any plate in this class.</div>
+              </div>
+            </div>
+
+            <!-- User Q4 -->
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+              <div style="font-size:10px;color:var(--muted);">Operator · 09:49</div>
+              <div class="chat-bubble-user">We've had 6 consecutive Stains predictions. Is this a real cluster or a camera issue?</div>
+            </div>
+            <!-- AI A4 -->
+            <div style="display:flex;gap:8px;align-items:flex-start;">
+              <div class="chat-avatar" style="background:rgba(129,140,248,.15);border:1px solid rgba(129,140,248,.3);">🤖</div>
+              <div style="display:flex;flex-direction:column;gap:3px;flex:1;">
+                <div style="font-size:10px;color:var(--muted);">QC Assistant · 09:49</div>
+                <div class="chat-bubble-ai">Almost certainly a <strong style="color:var(--text);">camera issue</strong>. The probability of 6 genuine consecutive Stains plates is ≈ 0.000002 given the class base rate. Stains AUC is 0.961, but the model's predictions are only as good as the imaging input. <strong style="color:var(--orange);">Trigger a lens-cleaning alert now</strong> and re-inspect the 6 plates after cleaning before routing them to Hold.</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- RIGHT: capability summary -->
+        <div style="display:flex;flex-direction:column;gap:11px;">
+          <div class="card card-purple" style="padding:14px;">
+            <h3 style="margin-bottom:8px;color:var(--purple);font-size:13px;">Context the AI Receives</h3>
+            <div style="display:flex;flex-direction:column;gap:5px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:11.5px;">
+                <span style="color:var(--muted);">KPI totals (plates, risk counts)</span><span class="badge badge-accent" style="font-size:9px;">✓</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:11.5px;">
+                <span style="color:var(--muted);">Defect distribution percentages</span><span class="badge badge-accent" style="font-size:9px;">✓</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:11.5px;">
+                <span style="color:var(--muted);">Risk tier counts per class</span><span class="badge badge-accent" style="font-size:9px;">✓</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:11.5px;">
+                <span style="color:var(--muted);">Per-class confidence stats</span><span class="badge badge-accent" style="font-size:9px;">✓</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:11.5px;">
+                <span style="color:var(--muted);">Heatmap off-diagonal confusion pairs</span><span class="badge badge-accent" style="font-size:9px;">✓</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:11.5px;">
+                <span style="color:var(--muted);">SHAP top feature importances</span><span class="badge badge-accent" style="font-size:9px;">✓</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:11.5px;">
+                <span style="color:var(--muted);">Actionable summary per class</span><span class="badge badge-accent" style="font-size:9px;">✓</span>
+              </div>
+            </div>
+          </div>
+          <div class="card card-green" style="padding:12px 14px;">
+            <h3 style="margin-bottom:6px;color:var(--green);font-size:13px;">Value Delivered</h3>
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:4px;">
+              <li><p style="font-size:11px;">✅ Data-grounded answers with exact batch numbers</p></li>
+              <li><p style="font-size:11px;">✅ Defect-specific factory routing recommendations</p></li>
+              <li><p style="font-size:11px;">✅ SHAP-based feature attribution explanations</p></li>
+              <li><p style="font-size:11px;">✅ Risk escalation guidance per tier &amp; class</p></li>
+              <li><p style="font-size:11px;">✅ Hardware fault detection (camera, sensor alerts)</p></li>
+            </ul>
+          </div>
+          <div class="card" style="padding:11px 14px;border-color:rgba(251,191,36,.2);">
+            <p style="font-size:11px;color:var(--muted);text-align:center;">The chatbot answers any question about the model, the batch, or QC procedures — in plain language, on the factory floor.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SLIDE 19 — LIMITATIONS, ETHICS & FUTURE WORK
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="slide slide-ethics" id="s19" style="padding:30px 64px 30px;justify-content:flex-start;">
     <div class="full-w" style="max-width:1100px;">
       <div class="phase-tag" style="margin-bottom:6px;">⚖️ Phase 4 — Ethical Considerations</div>
       <h2 style="margin-bottom:12px;font-size:clamp(18px,2vw,28px);">Limitations, Ethics &amp; Future Work</h2>
@@ -1041,9 +1428,9 @@
   </div>
 
   <!-- ══════════════════════════════════════════════════════
-       SLIDE 13 — BUSINESS RECOMMENDATIONS
+       SLIDE 20 — BUSINESS RECOMMENDATIONS
   ═══════════════════════════════════════════════════════════ -->
-  <div class="slide slide-recs" id="s13">
+  <div class="slide slide-recs" id="s20">
     <div class="full-w" style="max-width:1100px;">
       <div class="slide-label">Actionable Intelligence</div>
       <h2 style="margin-bottom:20px;">5 Business Recommendations</h2>
@@ -1110,9 +1497,9 @@
   </div>
 
   <!-- ══════════════════════════════════════════════════════
-       SLIDE 14 — CONCLUSION
+       SLIDE 21 — CONCLUSION
   ═══════════════════════════════════════════════════════════ -->
-  <div class="slide slide-conclusion" id="s14">
+  <div class="slide slide-conclusion" id="s21">
     <div class="full-w" style="max-width:1100px;text-align:center;">
       <div class="slide-label">Summary &amp; Impact</div>
       <h2 style="margin-bottom:24px;">Project Achievements</h2>
@@ -1167,9 +1554,9 @@
   </div>
 
   <!-- ══════════════════════════════════════════════════════
-       SLIDE 15 — THANK YOU
+       SLIDE 22 — THANK YOU
   ═══════════════════════════════════════════════════════════ -->
-  <div class="slide slide-thanks" id="s15">
+  <div class="slide slide-thanks" id="s22">
     <div style="text-align:center;max-width:900px;">
       <div style="font-size:64px;margin-bottom:20px;">🏭</div>
       <h1 style="margin-bottom:10px;">
@@ -1209,7 +1596,7 @@
 </div><!-- /slides -->
 
 <script>
-  const TOTAL = 15;
+  const TOTAL = 22;
   let current = 1;
 
   function showSlide(n) {
